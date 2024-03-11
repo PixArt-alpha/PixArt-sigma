@@ -10,7 +10,7 @@
 ---
 
 This repo contains PyTorch model definitions, pre-trained weights and inference/sampling code for our paper exploring 
-Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation. You can find more visualizations on our [project page](https://github.com/PixArt-alpha/PixArt-sigma-project).
+Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation. You can find more visualizations on our [project page](https://pixart-alpha.github.io/PixArt-sigma-project/).
 
 > [**PixArt-Σ: Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation**](https://github.com/PixArt-alpha/PixArt-sigma)<br>
 > [Junsong Chen*](https://lawrence-cj.github.io/), [Chongjian Ge*](https://chongjiange.github.io/), 
