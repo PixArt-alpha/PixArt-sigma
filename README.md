@@ -23,6 +23,12 @@ Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation
 > [Zhenguo Li](https://scholar.google.com/citations?user=XboZC1AAAAAJ)
 > <br>Huawei Noah’s Ark Lab, DLUT, HKU, HKUST<br>
 
+---
+## Breaking News 🔥🔥!!
+- (🔥 New) Mar. 29, 2024. 💥 [PixArt-Σ](https://pixart-alpha.github.io/PixArt-sigma-project/) 
+training & inference code & toy data are released!!!
+
+---
 
 # 🔥 How to Train
 ## 1. PixArt Training
