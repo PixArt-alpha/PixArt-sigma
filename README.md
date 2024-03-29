@@ -17,18 +17,89 @@ Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation
 > [Enze Xie*](https://xieenze.github.io/)&#8224;,
 > [Yue Wu*](https://yuewuhkust.github.io/),
 > [Lewei Yao](https://scholar.google.com/citations?user=hqDyTg8AAAAJ&hl=zh-CN&oi=ao),
-> [Xiaozhe Ren](), [Zhongdao Wang](https://zhongdao.github.io/), 
+> [Xiaozhe Ren](https://scholar.google.com/citations?user=3t2j87YAAAAJ&hl=en), [Zhongdao Wang](https://zhongdao.github.io/), 
 > [Ping Luo](http://luoping.me/), 
 > [Huchuan Lu](https://scholar.google.com/citations?hl=en&user=D3nE0agAAAAJ), 
 > [Zhenguo Li](https://scholar.google.com/citations?user=XboZC1AAAAAJ)
 > <br>Huawei Noah’s Ark Lab, DLUT, HKU, HKUST<br>
 
 
+# 🔥 How to Train
+## 1. PixArt Training
+
+**First of all.**
+
+We start a new repo to build a more user friendly and more compatible codebase. The main model structure is the same as PixArt-α, 
+you can still develop your function base on the [original repo](https://github.com/PixArt-alpha/PixArt-alpha). 
+lso, **This repo will support PixArt-alpha in the future**.
+
+**Now you can train your model without prior feature extraction**.
+We reform the data structure in PixArt-α code base, so that everyone can start to **train & inference & visualize**
+at the very beginning without any pain. 
+
+
+### 1.1 Downloading the toy dataset
+
+Download the [toy dataset](https://huggingface.co/datasets/PixArt-alpha/pixart-sigma-toy-dataset) first.
+The dataset structure for training is:
+
+```
+cd ./pixart-sigma-toy-dataset
+
+Dataset Structure
+├──InternImgs/  (images are saved here)
+│  ├──000000000000.png
+│  ├──000000000001.png
+│  ├──......
+├──InternData/
+│  ├──data_info.json    (meta data)
+Optional(👇)
+│  ├──img_sdxl_vae_features_1024resolution_ms_new    (run tools/extract_caption_feature.py to generate caption T5 features, same name as images except .npz extension)
+│  │  ├──000000000000.npy
+│  │  ├──000000000001.npy
+│  │  ├──......
+│  ├──caption_features_new
+│  │  ├──000000000000.npz
+│  │  ├──000000000001.npz
+│  │  ├──......
+│  ├──sharegpt4v_caption_features_new    (run tools/extract_caption_feature.py to generate caption T5 features, same name as images except .npz extension)
+│  │  ├──000000000000.npz
+│  │  ├──000000000001.npz
+│  │  ├──......
+```
+
+### 1.2 You are ready to train!
+Selecting your desired config file from [config files dir](configs/pixart_sigma_config).
+
+```bash
+python -m torch.distributed.launch --nproc_per_node=1 --master_port=12345 \
+          train_scripts/train.py \
+          configs/pixart_sigma_config/PixArt_sigma_xl2_img512_internalms.py \
+          --work-dir output/your_first_exp \
+          --debug
+```
+
+# 💻 How to Test
+## 1. Quick start with [Gradio](https://www.gradio.app/guides/quickstart)
+
+To get started, first install the required dependencies. Make sure you've downloaded the checkpoint files 
+from [models(coming soon)](https://huggingface.co/PixArt-alpha/PixArt-Sigma) to the `output/pretrained_models` folder, 
+and then run on your local machine:
+
+```bash
+python scripts/interface.py --model_path coming_soon.pth --image_size 512 --port 11223
+```
+
+## 2. Integration in diffusers
+ (Coming soon)
+
 ## 💪To-Do List
 We will try our best to release
 
-- [ ] Training code
-- [ ] Inference code
+- [x] Training code
+- [x] Inference code
 - [ ] Model zoo 
+- [ ] Diffusers
+- [ ] One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
 
-before 1st, April.
+ before 10th, April.
