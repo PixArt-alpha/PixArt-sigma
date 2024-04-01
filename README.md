@@ -24,6 +24,11 @@ Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation
 > <br>Huawei Noah’s Ark Lab, DLUT, HKU, HKUST<br>
 
 ---
+##  Welcome everyone to contribute🔥🔥!!
+Learning from the previous [PixArt-α](https://github.com/PixArt-alpha/PixArt-alpha) project, 
+we will try to keep this repo as simple as possible so that everyone in the PixArt community can use it.
+
+---
 ## Breaking News 🔥🔥!!
 - (🔥 New) Mar. 29, 2024. 💥 [PixArt-Σ](https://pixart-alpha.github.io/PixArt-sigma-project/) 
 training & inference code & toy data are released!!!
@@ -106,6 +111,6 @@ We will try our best to release
 - [x] Inference code
 - [ ] Model zoo 
 - [ ] Diffusers
-- [ ] One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
+- [ ] training & inference code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
 
  before 10th, April.
