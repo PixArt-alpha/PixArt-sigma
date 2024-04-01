@@ -374,7 +374,11 @@ def parse_args():
     parser.add_argument('--local-rank', type=int, default=-1)
     parser.add_argument('--local_rank', type=int, default=-1)
     parser.add_argument('--debug', action='store_true')
-    parser.add_argument("--pipeline_load_from", default='output/pretrained_models/pixart_omega_sdxl_256px_diffusers_from512', type=str, help="path for loading text_encoder, tokenizer and vae")
+    parser.add_argument(
+        "--pipeline_load_from", default='output/pretrained_models/pixart_sigma_sdxlvae_T5_diffusers',
+        type=str, help="Download for loading text_encoder, "
+                       "tokenizer and vae from https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers"
+    )
     args = parser.parse_args()
     return args
 

@@ -26,7 +26,11 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--image_size', default=1024, type=int)
     parser.add_argument('--version', default='sigma', type=str)
-    parser.add_argument("--pipeline_load_from", default='output/pretrained_models/pixart_omega_sdxl_256px_diffusers_from512', type=str, help="path for loading text_encoder, tokenizer and vae")
+    parser.add_argument(
+        "--pipeline_load_from", default='output/pretrained_models/pixart_sigma_sdxlvae_T5_diffusers',
+        type=str, help="Download for loading text_encoder, "
+                       "tokenizer and vae from https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers"
+    )
     parser.add_argument('--txt_file', default='asset/samples.txt', type=str)
     parser.add_argument('--model_path', default='output/pretrained_models/PixArt-XL-2-1024x1024.pth', type=str)
     parser.add_argument('--sdvae', action='store_true', help='sd vae')
