@@ -155,8 +155,9 @@ if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger = get_root_logger()
 
-    assert args.image_size in [512, 1024, 2048], "We only provide pre-trained models for 512x512, 1024x1024 and 2048x2048 resolutions."
-    pe_interpolation = {512: 1, 1024: 2, 2048: 4}
+    assert args.image_size in [256, 512, 1024, 2048], \
+        "We only provide pre-trained models for 256x256, 512x512, 1024x1024 and 2048x2048 resolutions."
+    pe_interpolation = {256: 0.5, 512: 1, 1024: 2, 2048: 4}
     latent_size = args.image_size // 8
     max_sequence_length = {"alpha": 120, "sigma": 300}[args.version]
     weight_dtype = torch.float16
@@ -185,9 +186,11 @@ if __name__ == '__main__':
     base_ratios = eval(f'ASPECT_RATIO_{args.image_size}_TEST')
 
     if args.sdvae:
+        # pixart-alpha vae link: https://huggingface.co/PixArt-alpha/PixArt-alpha/tree/main/sd-vae-ft-ema
         vae = AutoencoderKL.from_pretrained("output/pretrained_models/sd-vae-ft-ema").to(device).to(weight_dtype)
     else:
-        vae = AutoencoderKL.from_pretrained("output/pretrained_models/models--madebyollin--sdxl-vae-fp16-fix").to(device).to(weight_dtype)
+        # pixart-Sigma vae link: https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers/tree/main/vae
+        vae = AutoencoderKL.from_pretrained(f"{args.pipeline_load_from}/vae").to(device).to(weight_dtype)
 
     tokenizer = T5Tokenizer.from_pretrained(args.pipeline_load_from, subfolder="tokenizer")
     text_encoder = T5EncoderModel.from_pretrained(args.pipeline_load_from, subfolder="text_encoder").to(device)
@@ -198,18 +201,17 @@ if __name__ == '__main__':
     title = f"""
         '' Unleashing your Creativity \n ''
         <div style='display: flex; align-items: center; justify-content: center; text-align: center;'>
-            <img src='https://raw.githubusercontent.com/PixArt-alpha/PixArt-alpha.github.io/master/static/images/logo.png' style='width: 400px; height: auto; margin-right: 10px;' />
+            <img src='https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/logo-sigma.png' style='width: 400px; height: auto; margin-right: 10px;' />
             {args.image_size}px
         </div>
     """
-    DESCRIPTION = """# PixArt-Alpha 1024px
-            ## If PixArt-Alpha is helpful, please help to ⭐ the [Github Repo](https://github.com/PixArt-alpha/PixArt) and recommend it to your friends 😊'
-            #### [PixArt-Alpha 1024px](https://github.com/PixArt-alpha/PixArt-alpha) is a transformer-based text-to-image diffusion system trained on text embeddings from T5. This demo uses the [PixArt-alpha/PixArt-XL-2-1024-MS](https://huggingface.co/PixArt-alpha/PixArt-XL-2-1024-MS) checkpoint.
+    DESCRIPTION = f"""# PixArt-Sigma {args.image_size}px
+            ## If PixArt-Sigma is helpful, please help to ⭐ the [Github Repo](https://github.com/PixArt-alpha/PixArt-sigma) and recommend it to your friends ��'
+            #### [PixArt-Sigma {args.image_size}px](https://github.com/PixArt-alpha/PixArt-sigma) is a transformer-based text-to-image diffusion system trained on text embeddings from T5. This demo uses the [PixArt-Sigma](https://huggingface.co/PixArt-alpha/PixArt-Sigma) checkpoint.
             #### English prompts ONLY; 提示词仅限英文
-            Don't want to queue? Try [OpenXLab](https://openxlab.org.cn/apps/detail/PixArt-alpha/PixArt-alpha) or [Google Colab Demo](https://colab.research.google.com/drive/1jZ5UZXk7tcpTfVwnX33dDuefNMcnW9ME?usp=sharing).
             """
     if not torch.cuda.is_available():
-        DESCRIPTION += "\n<p>Running on CPU 🥶 This demo does not work on CPU.</p>"
+        DESCRIPTION += "\n<p>Running on CPU �� This demo does not work on CPU.</p>"
 
     demo = gr.Interface(
         fn=generate_img,

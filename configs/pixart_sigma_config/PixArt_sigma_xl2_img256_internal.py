@@ -12,9 +12,9 @@ image_size = 256
 model = 'PixArt_XL_2'
 mixed_precision = 'fp16'    # ['fp16', 'fp32', 'bf16']
 fp32_attention = True
-load_from = None
+load_from = "output/pretrained_models/PixArt-Sigma-XL-2-256x256.pth"  # https://huggingface.co/PixArt-alpha/PixArt-Sigma
 resume_from = None
-vae_pretrained = "output/pretrained_models/models--madebyollin--sdxl-vae-fp16-fix"  # sdxl vae
+vae_pretrained = "output/pretrained_models/pixart_sigma_sdxlvae_T5_diffusers/vae"  # sdxl vae
 multi_scale = False     # if use multiscale dataset model training
 pe_interpolation = 0.5
 

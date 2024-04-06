@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="asset/logo-sigma.png"  height=120>
+</p>
+
+
 ### <div align="center">👉 PixArt-Σ: Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation<div> 
 
 <div align="center">
@@ -30,6 +35,7 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 
 ---
 ## Breaking News 🔥🔥!!
+- (🔥 New) Apr. 6, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/tree/main) 256px & 512px are released!
 - (🔥 New) Mar. 29, 2024. 💥 [PixArt-Σ](https://pixart-alpha.github.io/PixArt-sigma-project/) 
 training & inference code & toy data are released!!!
 
@@ -79,14 +85,25 @@ Optional(👇)
 │  │  ├──......
 ```
 
-### 1.2 You are ready to train!
+### 1.2 Download pretrained chechpoint
+```bash
+# SDXL-VAE, T5 checkpoints
+git lfs install
+git clone https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers output/pixart_sigma_sdxlvae_T5_diffusers
+
+# PixArt-Sigma checkpoints
+python tools/download.py
+```
+
+### 1.3 You are ready to train!
 Selecting your desired config file from [config files dir](configs/pixart_sigma_config).
 
 ```bash
 python -m torch.distributed.launch --nproc_per_node=1 --master_port=12345 \
           train_scripts/train.py \
           configs/pixart_sigma_config/PixArt_sigma_xl2_img512_internalms.py \
-          --work-dir output/your_first_exp \
+          --load-from output/pretrained_models/PixArt-Sigma-XL-2-512-MS.pth
+          --work-dir output/your_first_pixart-exp \
           --debug
 ```
 
@@ -98,7 +115,15 @@ from [models(coming soon)](https://huggingface.co/PixArt-alpha/PixArt-Sigma) to 
 and then run on your local machine:
 
 ```bash
-python scripts/interface.py --model_path coming_soon.pth --image_size 512 --port 11223
+# SDXL-VAE, T5 checkpoints
+git lfs install
+git clone https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers output/pixart_sigma_sdxlvae_T5_diffusers
+
+# PixArt-Sigma checkpoints
+python tools/download.py
+
+# demo launch
+python scripts/interface.py --model_path output/pretrained_models/PixArt-Sigma-XL-2-512-MS.pth --image_size 512 --port 11223
 ```
 
 ## 2. Integration in diffusers

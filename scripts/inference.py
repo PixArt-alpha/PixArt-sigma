@@ -152,7 +152,7 @@ if __name__ == '__main__':
     # only support fixed latent size currently
     latent_size = args.image_size // 8
     max_sequence_length = {"alpha": 120, "sigma": 300}[args.version]
-    lewei_scale = {512: 1, 1024: 2}     # trick for positional embedding interpolation
+    pe_interpolation = {256: 0.5, 512: 1, 1024: 2}     # trick for positional embedding interpolation
     micro_condition = True if args.version == 'alpha' and args.image_size == 1024 else False
     sample_steps_dict = {'iddpm': 100, 'dpm-solver': 20, 'sa-solver': 25}
     sample_steps = args.step if args.step != -1 else sample_steps_dict[args.sampling_algo]
@@ -160,10 +160,20 @@ if __name__ == '__main__':
     print(f"Inference with {weight_dtype}")
 
     # model setting
-    if args.image_size == 512:
-        model = PixArt_XL_2(input_size=latent_size, lewei_scale=lewei_scale[args.image_size]).to(device)
+    micro_condition = True if args.version == 'alpha' and args.image_size == 1024 else False
+    if args.image_size in [512, 1024, 2048, 2880]:
+        model = PixArtMS_XL_2(
+            input_size=latent_size,
+            pe_interpolation=pe_interpolation[args.image_size],
+            micro_condition=micro_condition,
+            model_max_length=max_sequence_length,
+        ).to(device)
     else:
-        model = PixArtMS_XL_2(input_size=latent_size, lewei_scale=lewei_scale[args.image_size]).to(device)
+        model = PixArt_XL_2(
+            input_size=latent_size,
+            pe_interpolation=pe_interpolation[args.image_size],
+            model_max_length=max_sequence_length,
+        ).to(device)
 
     print("Generating sample from ckpt: %s" % args.model_path)
     state_dict = find_model(args.model_path)
@@ -176,9 +186,11 @@ if __name__ == '__main__':
     base_ratios = eval(f'ASPECT_RATIO_{args.image_size}_TEST')
 
     if args.sdvae:
+        # pixart-alpha vae link: https://huggingface.co/PixArt-alpha/PixArt-alpha/tree/main/sd-vae-ft-ema
         vae = AutoencoderKL.from_pretrained("output/pretrained_models/sd-vae-ft-ema").to(device).to(weight_dtype)
     else:
-        vae = AutoencoderKL.from_pretrained("output/pretrained_models/models--madebyollin--sdxl-vae-fp16-fix").to(device).to(weight_dtype)
+        # pixart-Sigma vae link: https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers/tree/main/vae
+        vae = AutoencoderKL.from_pretrained(f"{args.pipeline_load_from}/vae").to(device).to(weight_dtype)
 
     tokenizer = T5Tokenizer.from_pretrained(args.pipeline_load_from, subfolder="tokenizer")
     text_encoder = T5EncoderModel.from_pretrained(args.pipeline_load_from, subfolder="text_encoder").to(device)
@@ -206,5 +218,4 @@ if __name__ == '__main__':
 
     save_root = os.path.join(img_save_dir, f"{datetime.now().date()}_{args.dataset}_epoch{epoch_name}_step{step_name}_scale{args.cfg_scale}_step{sample_steps}_size{args.image_size}_bs{args.bs}_samp{args.sampling_algo}_seed{seed}")
     os.makedirs(save_root, exist_ok=True)
-    items = ['dog']
     visualize(items, args.bs, sample_steps, args.cfg_scale)

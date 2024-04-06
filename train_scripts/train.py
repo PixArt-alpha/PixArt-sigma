@@ -409,9 +409,9 @@ if __name__ == '__main__':
                         **model_kwargs).train()
     logger.info(f"{model.__class__.__name__} Model Parameters: {sum(p.numel() for p in model.parameters()):,}")
 
+    if args.load_from is not None:
+        config.load_from = args.load_from
     if config.load_from is not None:
-        if args.load_from is not None:
-            config.load_from = args.load_from
         missing, unexpected = load_checkpoint(
             config.load_from, model, load_ema=config.get('load_ema', False), max_length=max_length)
         logger.warning(f'Missing keys: {missing}')

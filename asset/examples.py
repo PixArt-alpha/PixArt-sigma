@@ -1,31 +1,36 @@
+
 examples = [
     [
         "A small cactus with a happy face in the Sahara desert.",
         "dpm-solver", 20, 4.5,
-        "https://github.com/PixArt-alpha/PixArt-alpha.github.io/blob/master/static/images/carousel/carousel1.png",
-        "Prompt: A small cactus with a happy face in the Sahara desert. \nSize: --ar 1:1.",
-        "Model path: PixArt-XL-2-1024x1024.pt.\nBase image size: 1024, \nSampling Algo: dpm-solver"],
+    ],
     [
-        "Pirate ship trapped in a cosmic maelstrom nebula, rendered in cosmic beach whirlpool engine, volumetric lighting, "
-        "spectacular, ambient lights, light pollution, cinematic atmosphere, art nouveau style, illustration art artwork by SenseiJaye, "
-        "intricate detail. --ar 6144:4096.",
+        "An extreme close-up of an gray-haired man with a beard in his 60s, he is deep in thought pondering the history"
+        "of the universe as he sits at a cafe in Paris, his eyes focus on people offscreen as they walk as he sits "
+        "mostly motionless, he is dressed in a wool coat suit coat with a button-down shirt, he wears a brown beret "
+        "and glasses and has a very professorial appearance, and the end he offers a subtle closed-mouth smile "
+        "as if he found the answer to the mystery of life, the lighting is very cinematic with the golden light and "
+        "the Parisian streets and city in the background, depth of field, cinematic 35mm film.",
         "dpm-solver", 20, 4.5,
-        "https://github.com/PixArt-alpha/PixArt-alpha.github.io/blob/master/static/images/samples/15.png",
-        "Prompt: Pirate ship trapped in a cosmic maelstrom nebula, rendered in cosmic beach whirlpool engine, volumetric lighting, "
-        "spectacular, ambient lights, light pollution, cinematic atmosphere, art nouveau style, illustration art artwork by SenseiJaye, "
-        "intricate detail.\nSize: --ar 6144:4096.",
-        "Model path: PixArt-XL-2-1024x1024.pt.\nBase image size: 1024, \nSampling Algo: dpm-solver"],
+    ],
     [
-        "stars, water, brilliantly, gorgeous large scale scene, a little girl, in the style of dreamy realism, light gold and amber, "
+        "An illustration of a human heart made of translucent glass, standing on a pedestal amidst a stormy sea. "
+        "Rays of sunlight pierce the clouds, illuminating the heart, revealing a tiny universe within. "
+        "The quote 'Find the universe within you' is etched in bold letters across the horizon."
         "blue and pink, brilliantly illuminated in the background.",
         "dpm-solver", 20, 4.5,
-        "https://github.com/PixArt-alpha/PixArt-alpha.github.io/blob/master/static/images/samples/13.png",
-        "stars, water, brilliantly, gorgeous large scale scene, a little girl, in the style of dreamy realism, light gold and amber, blue and pink, brilliantly illuminated in the background.",
-        "Model path: PixArt-XL-2-1024x1024.pt.\nBase image size: 1024, \nSampling Algo: dpm-solver"],
+    ],
     [
-        "nature vs human nature, surreal, UHD, 8k, hyper details, rich colors, photograph.",
+        "A transparent sculpture of a duck made out of glass. The sculpture is in front of a painting of a landscape.",
         "dpm-solver", 20, 4.5,
-        "https://github.com/PixArt-alpha/PixArt-alpha.github.io/blob/master/static/images/samples/14.png",
-        "nature vs human nature, surreal, UHD, 8k, hyper details, rich colors, photograph.",
-        "Model path: PixArt-XL-2-1024x1024.pt.\nBase image size: 1024, \nSampling Algo: dpm-solver"],
+    ],
+    [
+        "A litter of golden retriever puppies playing in the snow. Their heads pop out of the snow, covered in.",
+        "dpm-solver", 20, 4.5,
+    ],
+    [
+        "a kayak in the water, in the style of optical color mixing, aerial view, rainbowcore, "
+        "national geographic photo, 8k resolution, crayon art, interactive artwork",
+        "dpm-solver", 20, 4.5,
+    ]
 ]
