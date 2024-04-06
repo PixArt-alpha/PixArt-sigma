@@ -15,14 +15,14 @@ fp32_attention = True
 load_from = None
 resume_from = None
 vae_pretrained = "output/pretrained_models/pixart_sigma_sdxlvae_T5_diffusers/vae"  # sdxl vae
-aspect_ratio_type = 'ASPECT_RATIO_2048'         # base aspect ratio [ASPECT_RATIO_512 or ASPECT_RATIO_256]
-multi_scale = True     # if use multiscale dataset model training
+aspect_ratio_type = 'ASPECT_RATIO_2048'  # base aspect ratio [ASPECT_RATIO_512 or ASPECT_RATIO_256]
+multi_scale = True  # if use multiscale dataset model training
 pe_interpolation = 4.0
 
 # training setting
-num_workers=10
-train_batch_size = 4 # 48
-num_epochs = 10 # 3
+num_workers = 10
+train_batch_size = 4  # 48
+num_epochs = 10  # 3
 gradient_accumulation_steps = 1
 grad_checkpointing = True
 gradient_clip = 0.01
@@ -30,10 +30,10 @@ optimizer = dict(type='CAMEWrapper', lr=2e-5, weight_decay=0.0, betas=(0.9, 0.99
 lr_schedule_args = dict(num_warmup_steps=100)
 
 eval_sampling_steps = 100
-visualize=True
+visualize = True
 log_interval = 10
-save_model_epochs=10
-save_model_steps=100
+save_model_epochs = 10
+save_model_steps = 100
 work_dir = 'output/debug'
 
 # pixart-sigma

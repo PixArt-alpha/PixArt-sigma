@@ -30,6 +30,7 @@ optimizer = dict(type='CAMEWrapper', lr=2e-5, weight_decay=0.0, betas=(0.9, 0.99
 lr_schedule_args = dict(num_warmup_steps=1000)
 
 eval_sampling_steps = 500
+visualize = True
 log_interval = 20
 save_model_epochs = 5
 save_model_steps = 2500

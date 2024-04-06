@@ -10,18 +10,18 @@ image_size = 256
 
 # model setting
 model = 'PixArt_XL_2'
-mixed_precision = 'fp16'    # ['fp16', 'fp32', 'bf16']
+mixed_precision = 'fp16'  # ['fp16', 'fp32', 'bf16']
 fp32_attention = True
 load_from = "output/pretrained_models/PixArt-Sigma-XL-2-256x256.pth"  # https://huggingface.co/PixArt-alpha/PixArt-Sigma
 resume_from = None
 vae_pretrained = "output/pretrained_models/pixart_sigma_sdxlvae_T5_diffusers/vae"  # sdxl vae
-multi_scale = False     # if use multiscale dataset model training
+multi_scale = False  # if use multiscale dataset model training
 pe_interpolation = 0.5
 
 # training setting
-num_workers=10
-train_batch_size = 64 # 64 as default
-num_epochs = 200 # 3
+num_workers = 10
+train_batch_size = 64  # 64 as default
+num_epochs = 200  # 3
 gradient_accumulation_steps = 1
 grad_checkpointing = True
 gradient_clip = 0.01
@@ -30,8 +30,8 @@ lr_schedule_args = dict(num_warmup_steps=1000)
 
 eval_sampling_steps = 500
 log_interval = 20
-save_model_epochs=5
-save_model_steps=2500
+save_model_epochs = 5
+save_model_steps = 2500
 work_dir = 'output/debug'
 
 # pixart-sigma
