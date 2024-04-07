@@ -41,6 +41,20 @@ training & inference code & toy data are released!!!
 
 ---
 
+# 🔧 Dependencies and Installation
+
+- Python >= 3.9 (Recommend to use [Anaconda](https://www.anaconda.com/download/#linux) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
+- [PyTorch >= 2.0.0+cu11.7](https://pytorch.org/)
+```bash
+conda create -n pixart python==3.9.0
+conda activate pixart
+conda install pytorch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 pytorch-cuda=11.7 -c pytorch -c nvidia
+
+git clone https://github.com/PixArt-alpha/PixArt-sigma.git
+cd PixArt-sigma
+pip install -r requirements.txt
+```
+
 # 🔥 How to Train
 ## 1. PixArt Training
 

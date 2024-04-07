@@ -1,10 +1,10 @@
 mmcv==1.7.0
 git+https://github.com/huggingface/diffusers
 timm==0.6.12
-accelerate
+accelerate==0.25.0
 tensorboard
 tensorboardX
-transformers
+transformers==4.36.1
 sentencepiece~=0.1.99
 ftfy
 beautifulsoup4
@@ -14,7 +14,7 @@ yapf==0.40.1
 opencv-python
 bs4
 einops
-xformers
+xformers==0.0.19
 optimum
 peft==0.6.2
 came-pytorch
