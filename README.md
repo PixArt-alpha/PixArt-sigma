@@ -35,16 +35,30 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 
 ---
 ## Breaking News 🔥🔥!!
+- (🔥 New) Apr. 9, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) 1024px is released!
 - (🔥 New) Apr. 6, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/tree/main) 256px & 512px are released!
 - (🔥 New) Mar. 29, 2024. 💥 [PixArt-Σ](https://pixart-alpha.github.io/PixArt-sigma-project/) 
 training & inference code & toy data are released!!!
 
 ---
+# 🆚 Compare with [PixArt-α](https://github.com/PixArt-alpha/PixArt-alpha)
+
+| Model    | T5 token length | VAE                                                          | 2K/4K |
+|----------|-----------------|--------------------------------------------------------------|-------|
+| PixArt-Σ | 300             | [SDXL](https://huggingface.co/madebyollin/sdxl-vae-fp16-fix) | ✅     |
+| PixArt-α | 120             | [SD1.5](https://huggingface.co/stabilityai/sd-vae-ft-ema)    | ❌     |
+
+| Model    | Sample-1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Sample-2                                                                                                                                                      | Sample-3                                                                                                                                                      |
+|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| PixArt-Σ | <img src="https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/samples/compare_simga_alpha/sample1%CE%A3.webp" width=512>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | <img src="https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/samples/compare_simga_alpha/sample2%CE%A3.webp" width=512> | <img src="https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/samples/compare_simga_alpha/sample3%CE%A3.webp" width=512> |
+| PixArt-α | <img src="https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/samples/compare_simga_alpha/sample1%CE%B1.webp" width=512>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | <img src="https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/samples/compare_simga_alpha/sample2%CE%B1.webp" width=512> | <img src="https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/samples/compare_simga_alpha/sample3%CE%B1.webp" width=512> |
+| Prompt   | An extreme close-up of an gray-haired man with a beard in his 60s, he is deep in thought pondering the history of the universe as he sits at a cafe in Paris, his eyes focus on people offscreen as they walk as he sits mostly motionless, he is dressed in a wool coat suit coat with a button-down shirt , he wears a <span style="color: red;">brown beret</span> and glasses and has a very professorial appearance, and the end he offers a subtle closed-mouth smile as if he found the answer to the mystery of life, the lighting is very cinematic with the golden light and the Parisian streets and city in the background, depth of field, cinematic 35mm film. | Body shot, a French woman, Photography, French Streets background, backlight, rim light, Fujifilm.                                                            | Photorealistic closeup video of two pirate ships battling each other as they sail inside <span style="color: red;">a cup of coffee</span>.                    |
 
 # 🔧 Dependencies and Installation
 
 - Python >= 3.9 (Recommend to use [Anaconda](https://www.anaconda.com/download/#linux) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
 - [PyTorch >= 2.0.0+cu11.7](https://pytorch.org/)
+
 ```bash
 conda create -n pixart python==3.9.0
 conda activate pixart
@@ -99,7 +113,7 @@ Optional(👇)
 │  │  ├──......
 ```
 
-### 1.2 Download pretrained chechpoint
+### 1.2 Download pretrained checkpoint
 ```bash
 # SDXL-VAE, T5 checkpoints
 git lfs install
@@ -142,6 +156,18 @@ python scripts/interface.py --model_path output/pretrained_models/PixArt-Sigma-X
 
 ## 2. Integration in diffusers
  (Coming soon)
+
+
+# ⏬ Available Models
+All models will be automatically downloaded [here](#12-download-pretrained-checkpoint). You can also choose to download manually from this [url](https://huggingface.co/PixArt-alpha/PixArt-Sigma).
+
+| Model         | #Params | pth                                                                                                                       | Download in OpenXLab |
+|:--------------|:--------|:--------------------------------------------------------------------------------------------------------------------------|:---------------------|
+| T5 & SDXL-VAE | 4.5B    | [pixart_sigma_sdxlvae_T5_diffusers](https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers)                | [coming soon]( )     |
+| PixArt-Σ-256  | 0.6B    | [PixArt-Sigma-XL-2-256x256.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-256x256.pth) | [coming soon]( )             |
+| PixArt-Σ-512  | 0.6B    | [PixArt-Sigma-XL-2-512-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-512-MS.pth)   | [coming soon]( )             |
+| PixArt-Σ-1024 | 0.6B    | [PixArt-Sigma-XL-2-1024-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) | [coming soon]( )            |
+
 
 ## 💪To-Do List
 We will try our best to release

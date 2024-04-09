@@ -367,7 +367,6 @@ if __name__ == '__main__':
                 skip = False
                 logger.info("Preparing Visualization prompt embeddings...")
                 break
-            logger.info("Preparing Visualization prompt embeddings...")
         if accelerator.is_main_process and not skip:
             if config.data.load_t5_feat and (tokenizer is None or text_encoder is None):
                 logger.info(f"Loading text encoder and tokenizer from {args.pipeline_load_from} ...")

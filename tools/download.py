@@ -14,7 +14,9 @@ import os
 import argparse
 
 
-pretrained_models = {'PixArt-Sigma-XL-2-512-MS.pth', 'PixArt-Sigma-XL-2-256x256.pth'}
+pretrained_models = {
+    'PixArt-Sigma-XL-2-512-MS.pth', 'PixArt-Sigma-XL-2-256x256.pth', 'PixArt-Sigma-XL-2-1024-MS.pth'
+}
 
 
 def find_model(model_name):

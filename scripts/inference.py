@@ -58,6 +58,9 @@ def visualize(items, bs, sample_steps, cfg_scale):
 
         prompts = []
         if bs == 1:
+            save_path = os.path.join(save_root, f"{prompts[0][:100]}.jpg")
+            if os.path.exists(save_path):
+                continue
             prompt_clean, _, hw, ar, custom_hw = prepare_prompt_ar(chunk[0], base_ratios, device=device, show=False)  # ar for aspect ratio
             if args.image_size == 1024:
                 latent_size_h, latent_size_w = int(hw[0, 0] // 8), int(hw[0, 1] // 8)
@@ -177,7 +180,8 @@ if __name__ == '__main__':
 
     print("Generating sample from ckpt: %s" % args.model_path)
     state_dict = find_model(args.model_path)
-    del state_dict['state_dict']['pos_embed']
+    if 'pos_embed' in state_dict['state_dict']:
+        del state_dict['state_dict']['pos_embed']
     missing, unexpected = model.load_state_dict(state_dict['state_dict'], strict=False)
     print('Missing keys: ', missing)
     print('Unexpected keys', unexpected)
@@ -207,8 +211,8 @@ if __name__ == '__main__':
 
     # img save setting
     try:
-        epoch_name = re.search(r'.*epoch_(\d+).*.pth', args.model_path).group(1)
-        step_name = re.search(r'.*step_(\d+).*.pth', args.model_path).group(1)
+        epoch_name = re.search(r'.*epoch_(\d+).*', args.model_path).group(1)
+        step_name = re.search(r'.*step_(\d+).*', args.model_path).group(1)
     except:
         epoch_name = 'unknown'
         step_name = 'unknown'
