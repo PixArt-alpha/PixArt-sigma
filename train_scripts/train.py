@@ -203,7 +203,7 @@ def train():
             accelerator.log(logs, step=global_step)
 
             global_step += 1
-            data_time_start= time.time()
+            data_time_start = time.time()
 
             if global_step % config.save_model_steps == 0:
                 accelerator.wait_for_everyone()
@@ -216,7 +216,9 @@ def train():
                                     optimizer=optimizer,
                                     lr_scheduler=lr_scheduler
                                     )
-                if config.visualize and (global_step % config.eval_sampling_steps == 0 or (step + 1) == 1):
+            if config.visualize and (global_step % config.eval_sampling_steps == 0 or (step + 1) == 1):
+                accelerator.wait_for_everyone()
+                if accelerator.is_main_process:
                     log_validation(model, global_step, device=accelerator.device, vae=vae)
 
         if epoch % config.save_model_epochs == 0 or epoch == config.num_epochs:
