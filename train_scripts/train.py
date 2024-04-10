@@ -205,9 +205,9 @@ def train():
             global_step += 1
             data_time_start= time.time()
 
-            accelerator.wait_for_everyone()
-            if accelerator.is_main_process:
-                if global_step % config.save_model_steps == 0:
+            if global_step % config.save_model_steps == 0:
+                accelerator.wait_for_everyone()
+                if accelerator.is_main_process:
                     os.umask(0o000)
                     save_checkpoint(os.path.join(config.work_dir, 'checkpoints'),
                                     epoch=epoch,
@@ -219,9 +219,9 @@ def train():
                 if config.visualize and (global_step % config.eval_sampling_steps == 0 or (step + 1) == 1):
                     log_validation(model, global_step, device=accelerator.device, vae=vae)
 
-        accelerator.wait_for_everyone()
-        if accelerator.is_main_process:
-            if epoch % config.save_model_epochs == 0 or epoch == config.num_epochs:
+        if epoch % config.save_model_epochs == 0 or epoch == config.num_epochs:
+            accelerator.wait_for_everyone()
+            if accelerator.is_main_process:
                 os.umask(0o000)
                 save_checkpoint(os.path.join(config.work_dir, 'checkpoints'),
                                 epoch=epoch,
@@ -230,7 +230,7 @@ def train():
                                 optimizer=optimizer,
                                 lr_scheduler=lr_scheduler
                                 )
-        synchronize()
+        accelerator.wait_for_everyone()
 
 
 def parse_args():
