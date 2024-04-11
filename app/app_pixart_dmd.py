@@ -11,8 +11,7 @@ import random
 import gradio as gr
 import numpy as np
 import uuid
-from diffusers import ConsistencyDecoderVAE, PixArtAlphaPipeline
-from transformers import T5EncoderModel, T5Tokenizer
+from diffusers import ConsistencyDecoderVAE, PixArtAlphaPipeline, Transformer2DModel, DDPMScheduler
 import torch
 from typing import Tuple
 from datetime import datetime
@@ -25,7 +24,7 @@ DESCRIPTION = """![Logo](https://raw.githubusercontent.com/PixArt-alpha/PixArt-s
         ### <span style='color: red;'>We only use 8 V100 GPUs for PixArt-DMD training. There's still plenty of room for improvement.
         """
 if not torch.cuda.is_available():
-    DESCRIPTION += "\n<p>Running on CPU �� This demo does not work on CPU.</p>"
+    DESCRIPTION += "\n<p>Running on CPU 🥶 This demo does not work on CPU.</p>"
 
 MAX_SEED = np.iinfo(np.int32).max
 CACHE_EXAMPLES = torch.cuda.is_available() and os.getenv("CACHE_EXAMPLES", "1") == "1"
@@ -125,15 +124,12 @@ if torch.cuda.is_available():
         T5_token_max_length = 300
 
     pipe = PixArtAlphaPipeline.from_pretrained(
-        model_path,
-        subfolder="transformer",
+        args.pipeline_load_from,
+        transformer=None,
         torch_dtype=weight_dtype,
-        use_safetensors=True,
     )
-    pipe.tokenizer = T5Tokenizer.from_pretrained(
-        args.pipeline_load_from, subfolder="tokenizer", torch_dtype=weight_dtype)
-    pipe.text_encoder = T5EncoderModel.from_pretrained(
-        args.pipeline_load_from, subfolder="text_encoder", torch_dtype=weight_dtype)
+    pipe.transformer = Transformer2DModel.from_pretrained(model_path, subfolder="transformer", torch_dtype=weight_dtype)
+    pipe.scheduler = DDPMScheduler.from_pretrained(model_path, subfolder="scheduler")
 
     print("Changing __call__ method of PixArtAlphaPipeline using scripts.diffusers_patches.pipeline_pixart_alpha_call")
     setattr(PixArtAlphaPipeline, '__call__', pipeline_pixart_alpha_call)
