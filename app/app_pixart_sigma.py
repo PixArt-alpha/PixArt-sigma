@@ -4,27 +4,30 @@ import argparse
 import os
 import sys
 from pathlib import Path
-
 current_file_path = Path(__file__).resolve()
 sys.path.insert(0, str(current_file_path.parent.parent))
 import random
 import gradio as gr
 import numpy as np
 import uuid
-from diffusers import ConsistencyDecoderVAE, PixArtAlphaPipeline, Transformer2DModel, DDPMScheduler
+from diffusers import ConsistencyDecoderVAE, PixArtAlphaPipeline, DPMSolverMultistepScheduler, Transformer2DModel, AutoencoderKL
 import torch
 from typing import Tuple
 from datetime import datetime
-from scripts.diffusers_patches import pipeline_pixart_alpha_call
+from diffusion.sa_solver_diffusers import SASolverScheduler
+from peft import PeftModel
+from scripts.diffusers_patches import pixart_sigma_init_patched_inputs
 
-DESCRIPTION = """![Logo](https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/logo-sigma.png)
-        # PixArt-Alpha One Step 512px
-        #### [PixArt-Alpha-DMD 512px](https://github.com/PixArt-alpha/PixArt-sigma) is a transformer-based text-to-image diffusion system trained on text embeddings from T5. This demo uses the [PixArt-Alpha-DMD-XL-2-512x512](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512) checkpoint.
+
+DESCRIPTION = """![Logo](https://raw.githubusercontent.com/PixArt-alpha/PixArt-alpha.github.io/master/static/images/logo.png)
+        # PixArt-Alpha 1024px
+        #### [PixArt-Alpha 1024px](https://github.com/PixArt-alpha/PixArt-alpha) is a transformer-based text-to-image diffusion system trained on text embeddings from T5. This demo uses the [PixArt-alpha/PixArt-XL-2-1024-MS](https://huggingface.co/PixArt-alpha/PixArt-XL-2-1024-MS) checkpoint.
         #### English prompts ONLY; 提示词仅限英文
-        ### <span style='color: red;'>We only use 8 V100 GPUs for PixArt-DMD training. There's still plenty of room for improvement.
+        Don't want to queue? Try [OpenXLab](https://openxlab.org.cn/apps/detail/PixArt-alpha/PixArt-alpha) or [Google Colab Demo](https://colab.research.google.com/drive/1jZ5UZXk7tcpTfVwnX33dDuefNMcnW9ME?usp=sharing).
+        ### <span style='color: red;'>You may change the DPM-Solver inference steps from 14 to 20, if you didn't get satisfied results.
         """
 if not torch.cuda.is_available():
-    DESCRIPTION += "\n<p>Running on CPU 🥶 This demo does not work on CPU.</p>"
+    DESCRIPTION += "\n<p>Running on CPU �� This demo does not work on CPU.</p>"
 
 MAX_SEED = np.iinfo(np.int32).max
 CACHE_EXAMPLES = torch.cuda.is_available() and os.getenv("CACHE_EXAMPLES", "1") == "1"
@@ -34,6 +37,7 @@ ENABLE_CPU_OFFLOAD = os.getenv("ENABLE_CPU_OFFLOAD", "0") == "1"
 PORT = int(os.getenv("DEMO_PORT", "15432"))
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 style_list = [
     {
@@ -88,13 +92,13 @@ style_list = [
     },
 ]
 
+
 styles = {k["name"]: (k["prompt"], k["negative_prompt"]) for k in style_list}
 STYLE_NAMES = list(styles.keys())
 DEFAULT_STYLE_NAME = "(No style)"
-SCHEDULE_NAME = ["PixArt-DMD"]
-DEFAULT_SCHEDULE_NAME = "PixArt-DMD"
-NUM_IMAGES_PER_PROMPT = 2
-
+SCHEDULE_NAME = ["DPM-Solver", "SA-Solver"]
+DEFAULT_SCHEDULE_NAME = "DPM-Solver"
+NUM_IMAGES_PER_PROMPT = 1
 
 def apply_style(style_name: str, positive: str, negative: str = "") -> Tuple[str, str]:
     p, n = styles.get(style_name, styles[DEFAULT_STYLE_NAME])
@@ -105,11 +109,14 @@ def apply_style(style_name: str, positive: str, negative: str = "") -> Tuple[str
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_path', default="PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512", type=str)
+    parser.add_argument('--is_lora', action='store_true', help='enable lora ckpt loading')
+    parser.add_argument('--repo_id', default="PixArt-alpha/PixArt-Sigma-XL-2-1024-MS", type=str)
+    parser.add_argument('--lora_repo_id', default=None, type=str)
+    parser.add_argument('--model_path', default=None, type=str)
     parser.add_argument(
-        '--pipeline_load_from', default="PixArt-alpha/PixArt-XL-2-1024-MS", type=str,
-        help="Download for loading text_encoder, "
-             "tokenizer and vae from https://huggingface.co/PixArt-alpha/PixArt-XL-2-1024-MS")
+        '--pipeline_load_from', default="PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers", type=str,
+        help="Download for loading text_encoder, tokenizer and vae "
+             "from https://huggingface.co/PixArt-alpha/PixArt-XL-2-1024-MS")
     parser.add_argument('--T5_token_max_length', default=120, type=int, help='max length of tokens for T5')
     return parser.parse_args()
 
@@ -123,16 +130,36 @@ if torch.cuda.is_available():
     if 'Sigma' in args.model_path:
         T5_token_max_length = 300
 
-    pipe = PixArtAlphaPipeline.from_pretrained(
-        args.pipeline_load_from,
-        transformer=None,
-        torch_dtype=weight_dtype,
-    )
-    pipe.transformer = Transformer2DModel.from_pretrained(model_path, subfolder="transformer", torch_dtype=weight_dtype)
-    pipe.scheduler = DDPMScheduler.from_pretrained(model_path, subfolder="scheduler")
+    # tmp patches for diffusers PixArtSigmaPipeline Implementation
+    print(
+        "Changing _init_patched_inputs method of diffusers.models.Transformer2DModel "
+        "using scripts.diffusers_patches.pixart_sigma_init_patched_inputs")
+    setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
 
-    print("Changing __call__ method of PixArtAlphaPipeline using scripts.diffusers_patches.pipeline_pixart_alpha_call")
-    setattr(PixArtAlphaPipeline, '__call__', pipeline_pixart_alpha_call)
+    if not args.is_lora:
+        transformer = Transformer2DModel.from_pretrained(
+            model_path,
+            subfolder='transformer',
+            torch_dtype=weight_dtype,
+        )
+        pipe = PixArtAlphaPipeline.from_pretrained(
+            args.pipeline_load_from,
+            transformer=transformer,
+            torch_dtype=weight_dtype,
+            use_safetensors=True,
+        )
+    else:
+        assert args.lora_repo_id is not None
+        transformer = Transformer2DModel.from_pretrained(args.repo_id, subfolder="transformer", torch_dtype=torch.float16)
+        transformer = PeftModel.from_pretrained(transformer, args.lora_repo_id)
+        pipe = PixArtAlphaPipeline.from_pretrained(
+            args.repo_id,
+            transformer=transformer,
+            torch_dtype=torch.float16,
+            use_safetensors=True,
+        )
+        del transformer
+
 
     if os.getenv('CONSISTENCY_DECODER', False):
         print("Using DALL-E 3 Consistency Decoder")
@@ -179,6 +206,11 @@ def generate(
         seed: int = 0,
         width: int = 1024,
         height: int = 1024,
+        schedule: str = 'DPM-Solver',
+        dpms_guidance_scale: float = 3.5,
+        sas_guidance_scale: float = 3,
+        dpms_inference_steps: int = 20,
+        sas_inference_steps: int = 25,
         randomize_seed: bool = False,
         use_resolution_binning: bool = True,
         progress=gr.Progress(track_tqdm=True),
@@ -188,22 +220,34 @@ def generate(
     print(f"{PORT}: {model_path}")
     print(prompt)
 
+    if schedule == 'DPM-Solver':
+        if not isinstance(pipe.scheduler, DPMSolverMultistepScheduler):
+            pipe.scheduler = DPMSolverMultistepScheduler()
+        num_inference_steps = dpms_inference_steps
+        guidance_scale = dpms_guidance_scale
+    elif schedule == "SA-Solver":
+        if not isinstance(pipe.scheduler, SASolverScheduler):
+            pipe.scheduler = SASolverScheduler.from_config(pipe.scheduler.config, algorithm_type='data_prediction', tau_func=lambda t: 1 if 200 <= t <= 800 else 0, predictor_order=2, corrector_order=2)
+        num_inference_steps = sas_inference_steps
+        guidance_scale = sas_guidance_scale
+    else:
+        raise ValueError(f"Unknown schedule: {schedule}")
+
     if not use_negative_prompt:
         negative_prompt = None  # type: ignore
     prompt, negative_prompt = apply_style(style, prompt, negative_prompt)
 
     images = pipe(
         prompt=prompt,
-        timesteps=[400],
         width=width,
         height=height,
-        guidance_scale=1,
-        num_inference_steps=1,
+        guidance_scale=guidance_scale,
+        num_inference_steps=num_inference_steps,
         generator=generator,
         num_images_per_prompt=num_imgs,
         use_resolution_binning=use_resolution_binning,
         output_type="pil",
-        max_sequence_length=T5_token_max_length,
+        max_sequence_length=args.T5_token_max_length,
     ).images
 
     image_paths = [save_image(img, seed) for img in images]
@@ -261,7 +305,7 @@ with gr.Blocks(css="scripts/style.css") as demo:
                     minimum=1,
                     maximum=8,
                     step=1,
-                    value=NUM_IMAGES_PER_PROMPT,
+                    value=1,
                 )
             style_selection = gr.Radio(
                 show_label=True,
@@ -291,14 +335,44 @@ with gr.Blocks(css="scripts/style.css") as demo:
                     minimum=256,
                     maximum=MAX_IMAGE_SIZE,
                     step=32,
-                    value=512,
+                    value=1024,
                 )
                 height = gr.Slider(
                     label="Height",
                     minimum=256,
                     maximum=MAX_IMAGE_SIZE,
                     step=32,
-                    value=512,
+                    value=1024,
+                )
+            with gr.Row():
+                dpms_guidance_scale = gr.Slider(
+                    label="DPM-Solver Guidance scale",
+                    minimum=1,
+                    maximum=10,
+                    step=0.1,
+                    value=3.5,
+                )
+                dpms_inference_steps = gr.Slider(
+                    label="DPM-Solver inference steps",
+                    minimum=5,
+                    maximum=40,
+                    step=1,
+                    value=14,
+                )
+            with gr.Row():
+                sas_guidance_scale = gr.Slider(
+                    label="SA-Solver Guidance scale",
+                    minimum=1,
+                    maximum=10,
+                    step=0.1,
+                    value=3,
+                )
+                sas_inference_steps = gr.Slider(
+                    label="SA-Solver inference steps",
+                    minimum=10,
+                    maximum=40,
+                    step=1,
+                    value=25,
                 )
 
     gr.Examples(
@@ -333,6 +407,10 @@ with gr.Blocks(css="scripts/style.css") as demo:
             width,
             height,
             schedule,
+            dpms_guidance_scale,
+            sas_guidance_scale,
+            dpms_inference_steps,
+            sas_inference_steps,
             randomize_seed,
         ],
         outputs=[result, seed],

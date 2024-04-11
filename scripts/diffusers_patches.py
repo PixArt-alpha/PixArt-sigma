@@ -1,22 +1,55 @@
 import torch
 from diffusers import ImagePipelineOutput
+from diffusers.models.attention import BasicTransformerBlock
+from diffusers.models.embeddings import PixArtAlphaTextProjection, PatchEmbed
+from diffusers.models.normalization import AdaLayerNormSingle
 from diffusers.pipelines.pixart_alpha.pipeline_pixart_alpha import retrieve_timesteps
-from typing import Callable, List, Optional, Tuple, Union
-
 from diffusers.utils import deprecate
+from torch import nn
+from typing import Callable, List, Optional, Tuple, Union
 
 
 ASPECT_RATIO_2048_BIN = {
-    '0.25': [1024.0, 4096.0], '0.26': [1024.0, 3968.0], '0.27': [1024.0, 3840.0], '0.28': [1024.0, 3712.0],
-    '0.32': [1152.0, 3584.0], '0.33': [1152.0, 3456.0], '0.35': [1152.0, 3328.0], '0.4': [1280.0, 3200.0],
-    '0.42': [1280.0, 3072.0], '0.48': [1408.0, 2944.0], '0.5': [1408.0, 2816.0], '0.52': [1408.0, 2688.0],
-    '0.57': [1536.0, 2688.0], '0.6': [1536.0, 2560.0], '0.68': [1664.0, 2432.0], '0.72': [1664.0, 2304.0],
-    '0.78': [1792.0, 2304.0], '0.82': [1792.0, 2176.0], '0.88': [1920.0, 2176.0], '0.94': [1920.0, 2048.0],
-    '1.0': [2048.0, 2048.0], '1.07': [2048.0, 1920.0], '1.13': [2176.0, 1920.0], '1.21': [2176.0, 1792.0],
-    '1.29': [2304.0, 1792.0], '1.38': [2304.0, 1664.0], '1.46': [2432.0, 1664.0], '1.67': [2560.0, 1536.0],
-    '1.75': [2688.0, 1536.0], '2.0': [2816.0, 1408.0], '2.09': [2944.0, 1408.0], '2.4': [3072.0, 1280.0],
-    '2.5': [3200.0, 1280.0], '2.89': [3328.0, 1152.0], '3.0': [3456.0, 1152.0], '3.11': [3584.0, 1152.0],
-    '3.62': [3712.0, 1024.0], '3.75': [3840.0, 1024.0], '3.88': [3968.0, 1024.0], '4.0': [4096.0, 1024.0]
+    "0.25": [1024.0, 4096.0],
+    "0.26": [1024.0, 3968.0],
+    "0.27": [1024.0, 3840.0],
+    "0.28": [1024.0, 3712.0],
+    "0.32": [1152.0, 3584.0],
+    "0.33": [1152.0, 3456.0],
+    "0.35": [1152.0, 3328.0],
+    "0.4": [1280.0, 3200.0],
+    "0.42": [1280.0, 3072.0],
+    "0.48": [1408.0, 2944.0],
+    "0.5": [1408.0, 2816.0],
+    "0.52": [1408.0, 2688.0],
+    "0.57": [1536.0, 2688.0],
+    "0.6": [1536.0, 2560.0],
+    "0.68": [1664.0, 2432.0],
+    "0.72": [1664.0, 2304.0],
+    "0.78": [1792.0, 2304.0],
+    "0.82": [1792.0, 2176.0],
+    "0.88": [1920.0, 2176.0],
+    "0.94": [1920.0, 2048.0],
+    "1.0": [2048.0, 2048.0],
+    "1.07": [2048.0, 1920.0],
+    "1.13": [2176.0, 1920.0],
+    "1.21": [2176.0, 1792.0],
+    "1.29": [2304.0, 1792.0],
+    "1.38": [2304.0, 1664.0],
+    "1.46": [2432.0, 1664.0],
+    "1.67": [2560.0, 1536.0],
+    "1.75": [2688.0, 1536.0],
+    "2.0": [2816.0, 1408.0],
+    "2.09": [2944.0, 1408.0],
+    "2.4": [3072.0, 1280.0],
+    "2.5": [3200.0, 1280.0],
+    "2.89": [3328.0, 1152.0],
+    "3.0": [3456.0, 1152.0],
+    "3.11": [3584.0, 1152.0],
+    "3.62": [3712.0, 1024.0],
+    "3.75": [3840.0, 1024.0],
+    "3.88": [3968.0, 1024.0],
+    "4.0": [4096.0, 1024.0]
 }
 
 ASPECT_RATIO_256_BIN = {
@@ -406,3 +439,77 @@ def pipeline_pixart_alpha_call(
         return (image,)
 
     return ImagePipelineOutput(images=image)
+
+
+def pixart_sigma_init_patched_inputs(self, norm_type):
+    assert self.config.sample_size is not None, "Transformer2DModel over patched input must provide sample_size"
+
+    self.height = self.config.sample_size
+    self.width = self.config.sample_size
+
+    self.patch_size = self.config.patch_size
+    interpolation_scale = (
+        self.config.interpolation_scale
+        if self.config.interpolation_scale is not None
+        else max(self.config.sample_size // 64, 1)
+    )
+    self.pos_embed = PatchEmbed(
+        height=self.config.sample_size,
+        width=self.config.sample_size,
+        patch_size=self.config.patch_size,
+        in_channels=self.in_channels,
+        embed_dim=self.inner_dim,
+        interpolation_scale=interpolation_scale,
+    )
+
+    self.transformer_blocks = nn.ModuleList(
+        [
+            BasicTransformerBlock(
+                self.inner_dim,
+                self.config.num_attention_heads,
+                self.config.attention_head_dim,
+                dropout=self.config.dropout,
+                cross_attention_dim=self.config.cross_attention_dim,
+                activation_fn=self.config.activation_fn,
+                num_embeds_ada_norm=self.config.num_embeds_ada_norm,
+                attention_bias=self.config.attention_bias,
+                only_cross_attention=self.config.only_cross_attention,
+                double_self_attention=self.config.double_self_attention,
+                upcast_attention=self.config.upcast_attention,
+                norm_type=norm_type,
+                norm_elementwise_affine=self.config.norm_elementwise_affine,
+                norm_eps=self.config.norm_eps,
+                attention_type=self.config.attention_type,
+            )
+            for _ in range(self.config.num_layers)
+        ]
+    )
+
+    if self.config.norm_type != "ada_norm_single":
+        self.norm_out = nn.LayerNorm(self.inner_dim, elementwise_affine=False, eps=1e-6)
+        self.proj_out_1 = nn.Linear(self.inner_dim, 2 * self.inner_dim)
+        self.proj_out_2 = nn.Linear(
+            self.inner_dim, self.config.patch_size * self.config.patch_size * self.out_channels
+        )
+    elif self.config.norm_type == "ada_norm_single":
+        self.norm_out = nn.LayerNorm(self.inner_dim, elementwise_affine=False, eps=1e-6)
+        self.scale_shift_table = nn.Parameter(torch.randn(2, self.inner_dim) / self.inner_dim**0.5)
+        self.proj_out = nn.Linear(
+            self.inner_dim, self.config.patch_size * self.config.patch_size * self.out_channels
+        )
+
+    # PixArt-Sigma blocks.
+    self.adaln_single = None
+    self.use_additional_conditions = False
+    if self.config.norm_type == "ada_norm_single":
+        # TODO(Sayak, PVP) clean this, PixArt-Sigma doesn't use additional_conditions anymore
+        # additional conditions until we find better name
+        self.adaln_single = AdaLayerNormSingle(
+            self.inner_dim, use_additional_conditions=self.use_additional_conditions
+        )
+
+    self.caption_projection = None
+    if self.caption_channels is not None:
+        self.caption_projection = PixArtAlphaTextProjection(
+            in_features=self.caption_channels, hidden_size=self.inner_dim
+        )
