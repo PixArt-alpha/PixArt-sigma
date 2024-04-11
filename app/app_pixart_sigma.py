@@ -10,24 +10,23 @@ import random
 import gradio as gr
 import numpy as np
 import uuid
-from diffusers import ConsistencyDecoderVAE, PixArtAlphaPipeline, DPMSolverMultistepScheduler, Transformer2DModel, AutoencoderKL
+from diffusers import ConsistencyDecoderVAE, DPMSolverMultistepScheduler, Transformer2DModel, AutoencoderKL
 import torch
 from typing import Tuple
 from datetime import datetime
 from diffusion.sa_solver_diffusers import SASolverScheduler
 from peft import PeftModel
-from scripts.diffusers_patches import pixart_sigma_init_patched_inputs
+from scripts.diffusers_patches import pixart_sigma_init_patched_inputs, PixArtSigmaPipeline
 
 
-DESCRIPTION = """![Logo](https://raw.githubusercontent.com/PixArt-alpha/PixArt-alpha.github.io/master/static/images/logo.png)
-        # PixArt-Alpha 1024px
-        #### [PixArt-Alpha 1024px](https://github.com/PixArt-alpha/PixArt-alpha) is a transformer-based text-to-image diffusion system trained on text embeddings from T5. This demo uses the [PixArt-alpha/PixArt-XL-2-1024-MS](https://huggingface.co/PixArt-alpha/PixArt-XL-2-1024-MS) checkpoint.
+DESCRIPTION = """![Logo](https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/logo-sigma.png)
+        # PixArt-Sigma 1024px
+        #### [PixArt-Sigma 1024px](https://github.com/PixArt-alpha/PixArt-sigma) is a transformer-based text-to-image diffusion system trained on text embeddings from T5. This demo uses the [PixArt-alpha/PixArt-XL-2-1024-MS](https://huggingface.co/PixArt-alpha/PixArt-XL-2-1024-MS) checkpoint.
         #### English prompts ONLY; 提示词仅限英文
-        Don't want to queue? Try [OpenXLab](https://openxlab.org.cn/apps/detail/PixArt-alpha/PixArt-alpha) or [Google Colab Demo](https://colab.research.google.com/drive/1jZ5UZXk7tcpTfVwnX33dDuefNMcnW9ME?usp=sharing).
-        ### <span style='color: red;'>You may change the DPM-Solver inference steps from 14 to 20, if you didn't get satisfied results.
+        ### <span style='color: red;'>You may change the DPM-Solver inference steps from 14 to 20, or DPM-Solver Guidance scale from 4.5 to 3.5 if you didn't get satisfied results.
         """
 if not torch.cuda.is_available():
-    DESCRIPTION += "\n<p>Running on CPU �� This demo does not work on CPU.</p>"
+    DESCRIPTION += "\n<p>Running on CPU 🥶 This demo does not work on CPU.</p>"
 
 MAX_SEED = np.iinfo(np.int32).max
 CACHE_EXAMPLES = torch.cuda.is_available() and os.getenv("CACHE_EXAMPLES", "1") == "1"
@@ -142,7 +141,7 @@ if torch.cuda.is_available():
             subfolder='transformer',
             torch_dtype=weight_dtype,
         )
-        pipe = PixArtAlphaPipeline.from_pretrained(
+        pipe = PixArtSigmaPipeline.from_pretrained(
             args.pipeline_load_from,
             transformer=transformer,
             torch_dtype=weight_dtype,
@@ -152,7 +151,7 @@ if torch.cuda.is_available():
         assert args.lora_repo_id is not None
         transformer = Transformer2DModel.from_pretrained(args.repo_id, subfolder="transformer", torch_dtype=torch.float16)
         transformer = PeftModel.from_pretrained(transformer, args.lora_repo_id)
-        pipe = PixArtAlphaPipeline.from_pretrained(
+        pipe = PixArtSigmaPipeline.from_pretrained(
             args.repo_id,
             transformer=transformer,
             torch_dtype=torch.float16,
@@ -207,7 +206,7 @@ def generate(
         width: int = 1024,
         height: int = 1024,
         schedule: str = 'DPM-Solver',
-        dpms_guidance_scale: float = 3.5,
+        dpms_guidance_scale: float = 4.5,
         sas_guidance_scale: float = 3,
         dpms_inference_steps: int = 20,
         sas_inference_steps: int = 25,
@@ -350,7 +349,7 @@ with gr.Blocks(css="scripts/style.css") as demo:
                     minimum=1,
                     maximum=10,
                     step=0.1,
-                    value=3.5,
+                    value=4.5,
                 )
                 dpms_inference_steps = gr.Slider(
                     label="DPM-Solver inference steps",

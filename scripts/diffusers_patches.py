@@ -1,13 +1,16 @@
 import torch
-from diffusers import ImagePipelineOutput
+from diffusers import ImagePipelineOutput, PixArtAlphaPipeline, AutoencoderKL, Transformer2DModel, \
+    DPMSolverMultistepScheduler
+from diffusers.image_processor import VaeImageProcessor
 from diffusers.models.attention import BasicTransformerBlock
 from diffusers.models.embeddings import PixArtAlphaTextProjection, PatchEmbed
 from diffusers.models.normalization import AdaLayerNormSingle
 from diffusers.pipelines.pixart_alpha.pipeline_pixart_alpha import retrieve_timesteps
-from diffusers.utils import deprecate
-from torch import nn
 from typing import Callable, List, Optional, Tuple, Union
 
+from diffusers.utils import deprecate
+from torch import nn
+from transformers import T5Tokenizer, T5EncoderModel
 
 ASPECT_RATIO_2048_BIN = {
     "0.25": [1024.0, 4096.0],
@@ -162,30 +165,30 @@ ASPECT_RATIO_512_BIN = {
 
 
 def pipeline_pixart_alpha_call(
-    self,
-    prompt: Union[str, List[str]] = None,
-    negative_prompt: str = "",
-    num_inference_steps: int = 20,
-    timesteps: List[int] = None,
-    guidance_scale: float = 4.5,
-    num_images_per_prompt: Optional[int] = 1,
-    height: Optional[int] = None,
-    width: Optional[int] = None,
-    eta: float = 0.0,
-    generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
-    latents: Optional[torch.FloatTensor] = None,
-    prompt_embeds: Optional[torch.FloatTensor] = None,
-    prompt_attention_mask: Optional[torch.FloatTensor] = None,
-    negative_prompt_embeds: Optional[torch.FloatTensor] = None,
-    negative_prompt_attention_mask: Optional[torch.FloatTensor] = None,
-    output_type: Optional[str] = "pil",
-    return_dict: bool = True,
-    callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
-    callback_steps: int = 1,
-    clean_caption: bool = True,
-    use_resolution_binning: bool = True,
-    max_sequence_length: int = 120,
-    **kwargs,
+        self,
+        prompt: Union[str, List[str]] = None,
+        negative_prompt: str = "",
+        num_inference_steps: int = 20,
+        timesteps: List[int] = None,
+        guidance_scale: float = 4.5,
+        num_images_per_prompt: Optional[int] = 1,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
+        eta: float = 0.0,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
+        latents: Optional[torch.FloatTensor] = None,
+        prompt_embeds: Optional[torch.FloatTensor] = None,
+        prompt_attention_mask: Optional[torch.FloatTensor] = None,
+        negative_prompt_embeds: Optional[torch.FloatTensor] = None,
+        negative_prompt_attention_mask: Optional[torch.FloatTensor] = None,
+        output_type: Optional[str] = "pil",
+        return_dict: bool = True,
+        callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
+        callback_steps: int = 1,
+        clean_caption: bool = True,
+        use_resolution_binning: bool = True,
+        max_sequence_length: int = 120,
+        **kwargs,
 ) -> Union[ImagePipelineOutput, Tuple]:
     """
     Function invoked when calling the pipeline for generation.
@@ -441,6 +444,29 @@ def pipeline_pixart_alpha_call(
     return ImagePipelineOutput(images=image)
 
 
+class PixArtSigmaPipeline(PixArtAlphaPipeline):
+    r"""
+    tmp Pipeline for text-to-image generation using PixArt-Sigma.
+    """
+
+    def __init__(
+            self,
+            tokenizer: T5Tokenizer,
+            text_encoder: T5EncoderModel,
+            vae: AutoencoderKL,
+            transformer: Transformer2DModel,
+            scheduler: DPMSolverMultistepScheduler,
+    ):
+        super().__init__(tokenizer, text_encoder, vae, transformer, scheduler)
+
+        self.register_modules(
+            tokenizer=tokenizer, text_encoder=text_encoder, vae=vae, transformer=transformer, scheduler=scheduler
+        )
+
+        self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
+        self.image_processor = VaeImageProcessor(vae_scale_factor=self.vae_scale_factor)
+
+
 def pixart_sigma_init_patched_inputs(self, norm_type):
     assert self.config.sample_size is not None, "Transformer2DModel over patched input must provide sample_size"
 
@@ -493,7 +519,7 @@ def pixart_sigma_init_patched_inputs(self, norm_type):
         )
     elif self.config.norm_type == "ada_norm_single":
         self.norm_out = nn.LayerNorm(self.inner_dim, elementwise_affine=False, eps=1e-6)
-        self.scale_shift_table = nn.Parameter(torch.randn(2, self.inner_dim) / self.inner_dim**0.5)
+        self.scale_shift_table = nn.Parameter(torch.randn(2, self.inner_dim) / self.inner_dim ** 0.5)
         self.proj_out = nn.Linear(
             self.inner_dim, self.config.patch_size * self.config.patch_size * self.out_channels
         )

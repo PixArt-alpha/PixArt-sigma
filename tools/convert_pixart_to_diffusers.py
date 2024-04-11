@@ -82,7 +82,7 @@ def main(args):
         converted_state_dict[f"transformer_blocks.{depth}.scale_shift_table"] = state_dict.pop(
             f"blocks.{depth}.scale_shift_table"
         )
-        # Attention is all you need ��
+        # Attention is all you need 🤘
 
         # Self attention.
         q, k, v = torch.chunk(state_dict.pop(f"blocks.{depth}.attn.qkv.weight"), 3, dim=0)

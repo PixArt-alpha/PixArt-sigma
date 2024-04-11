@@ -35,6 +35,7 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 
 ---
 ## Breaking News 🔥🔥!!
+- (🔥 New) Apr. 11, 2024. 💥 [PixArt-Σ Demo](#3-pixart-demo) & [PixArt-Σ Pipeline](#2-integration-in-diffusers)! PixArt-Σ supports `🧨 diffusers` using [patches](scripts/diffusers_patches.py) for fast experience!
 - (🔥 New) Apr. 10, 2024. 💥 PixArt-α-DMD one step sampler [demo code](app/app_pixart_dmd.py) & [PixArt-α-DMD checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512) 512px are released!
 - (🔥 New) Apr. 9, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) 1024px is released!
 - (🔥 New) Apr. 6, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/tree/main) 256px & 512px are released!
@@ -158,25 +159,72 @@ python scripts/interface.py --model_path output/pretrained_models/PixArt-Sigma-X
 ```
 
 ## 2. Integration in diffusers
- (Coming soon)
-
-## 3. PixArt-DMD Demo
+**First**
 ```bash
+pip install git+https://github.com/huggingface/diffusers
+```
+**Then**
+```python
+import torch
+from diffusers import Transformer2DModel
+from scripts.diffusers_patches import pixart_sigma_init_patched_inputs, PixArtSigmaPipeline
+
+setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+transformer = Transformer2DModel.from_pretrained(
+    "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS", 
+    subfolder='transformer', 
+    use_safetensors=True,
+)
+pipe = PixArtSigmaPipeline.from_pretrained(
+    "PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers",
+    transformer=transformer,
+    use_safetensors=True,
+)
+pipe.to(device)
+
+# Enable memory optimizations.
+# pipe.enable_model_cpu_offload()
+
+prompt = "A small cactus with a happy face in the Sahara desert."
+image = pipe(prompt).images[0]
+image.save("./catcus.png")
+```
+
+## 3. PixArt Demo
+```bash
+pip install git+https://github.com/huggingface/diffusers
+
+# PixArt-Sigma
+DEMO_PORT=12345 python app/app_pixart_sigma.py
+
+# PixArt-Sigma One step Sampler(DMD)
 DEMO_PORT=12345 python app/app_pixart_dmd.py
 ```
 Let's have a look at a simple example using the `http://your-server-ip:12345`.
 
 
+## 4. Convert .pth checkpoint into diffusers version
+Directly download from [Hugging Face](https://huggingface.co/PixArt-alpha/PixArt-Sigma-XL-2-1024-MS)
+
+or run with:
+```bash
+pip install git+https://github.com/huggingface/diffusers
+
+python tools/convert_pixart_to_diffusers.py --orig_ckpt_path output/pretrained_models/PixArt-Sigma-XL-2-1024-MS.pth --dump_path output/pretrained_models/PixArt-Sigma-XL-2-1024-MS --only_transformer=True --image_size=1024 --version sigma
+```
+
 # ⏬ Available Models
 All models will be automatically downloaded [here](#12-download-pretrained-checkpoint). You can also choose to download manually from this [url](https://huggingface.co/PixArt-alpha/PixArt-Sigma).
 
-| Model            | #Params | Checkpoint path                                                                                                           | Download in OpenXLab |
-|:-----------------|:--------|:--------------------------------------------------------------------------------------------------------------------------|:---------------------|
-| T5 & SDXL-VAE    | 4.5B    | [pixart_sigma_sdxlvae_T5_diffusers](https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers)                | [coming soon]( )     |
-| PixArt-Σ-256     | 0.6B    | [PixArt-Sigma-XL-2-256x256.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-256x256.pth) | [coming soon]( )     |
-| PixArt-Σ-512     | 0.6B    | [PixArt-Sigma-XL-2-512-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-512-MS.pth)   | [coming soon]( )     |
-| PixArt-α-512-DMD | 0.6B    | Diffusers: [PixArt-Alpha-DMD-XL-2-512x512](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512)             | [coming soon]( )     |
-| PixArt-Σ-1024    | 0.6B    | [PixArt-Sigma-XL-2-1024-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) | [coming soon]( )     |
+| Model            | #Params | Checkpoint path                                                                                                                                                                                                                                                   | Download in OpenXLab |
+|:-----------------|:--------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------|
+| T5 & SDXL-VAE    | 4.5B    | Diffusers: [pixart_sigma_sdxlvae_T5_diffusers](https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers)                                                                                                                                             | [coming soon]( )     |
+| PixArt-Σ-256     | 0.6B    | pth: [PixArt-Sigma-XL-2-256x256.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-256x256.pth) <br/> Diffusers: [PixArt-Sigma-XL-2-256x256](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-256x256) | [coming soon]( )     |
+| PixArt-Σ-512     | 0.6B    | pth: [PixArt-Sigma-XL-2-512-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-512-MS.pth) <br/> Diffusers: [PixArt-Sigma-XL-2-512-MS](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-512-MS)     | [coming soon]( )     |
+| PixArt-α-512-DMD | 0.6B    | Diffusers: [PixArt-Alpha-DMD-XL-2-512x512](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512)                                                                                                                                                     | [coming soon]( )     |
+| PixArt-Σ-1024    | 0.6B    | pth: [PixArt-Sigma-XL-2-1024-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) <br/> Diffusers: [PixArt-Sigma-XL-2-1024-MS](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS) | [coming soon]( )     |
 
 
 ## 💪To-Do List
@@ -186,6 +234,7 @@ We will try our best to release
 - [x] Inference code
 - [x] Inference code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
 - [x] Model zoo (256/512/1024)
-- [ ] Diffusers
+- [x] Diffusers (for fast experience)
+- [ ] Diffusers (stable official version)
 - [ ] Training code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
 - [ ] Model zoo (2K)
