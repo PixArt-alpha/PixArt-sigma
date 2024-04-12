@@ -82,8 +82,9 @@ We start a new repo to build a more user friendly and more compatible codebase. 
 you can still develop your function base on the [original repo](https://github.com/PixArt-alpha/PixArt-alpha). 
 lso, **This repo will support PixArt-alpha in the future**.
 
-**Now you can train your model without prior feature extraction**.
-We reform the data structure in PixArt-α code base, so that everyone can start to **train & inference & visualize**
+> [!TIP]  
+> **Now you can train your model without prior feature extraction**.
+> We reform the data structure in PixArt-α code base, so that everyone can start to **train & inference & visualize**
 at the very beginning without any pain. 
 
 
