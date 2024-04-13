@@ -2,7 +2,6 @@
   <img src="asset/logo-sigma.png"  height=120>
 </p>
 
-
 ### <div align="center">👉 PixArt-Σ: Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation<div> 
 
 <div align="center">
@@ -13,7 +12,6 @@
 </div>
 
 ---
-
 This repo contains PyTorch model definitions, pre-trained weights and inference/sampling code for our paper exploring 
 Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation. You can find more visualizations on our [project page](https://pixart-alpha.github.io/PixArt-sigma-project/).
 
@@ -43,6 +41,19 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 training & inference code & toy data are released!!!
 
 ---
+## Contents
+* [Weak-to-Strong](#-compare-with-pixart-α)
+* [Training](#-how-to-train)
+* [Download Models](#12-download-pretrained-checkpoint)
+* [Data Tree](#11-downloading-the-toy-dataset)
+* [Inference](#-how-to-test)
+* [Launch Demo](#3-pixart-demo)
+* [Use diffusers](#2-integration-in-diffusers)
+* [Acknowledgement](#acknowledgements)
+* [Citation](#bibtex)
+* [TODO](#to-do-list)
+---
+
 # 🆚 Compare with [PixArt-α](https://github.com/PixArt-alpha/PixArt-alpha)
 
 | Model    | T5 token length | VAE                                                          | 2K/4K |
@@ -73,6 +84,7 @@ cd PixArt-sigma
 pip install -r requirements.txt
 ```
 
+---
 # 🔥 How to Train
 ## 1. PixArt Training
 
@@ -140,6 +152,7 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=12345 \
           --debug
 ```
 
+---
 # 💻 How to Test
 ## 1. Quick start with [Gradio](https://www.gradio.app/guides/quickstart)
 
@@ -221,6 +234,7 @@ pip install git+https://github.com/huggingface/diffusers
 python tools/convert_pixart_to_diffusers.py --orig_ckpt_path output/pretrained_models/PixArt-Sigma-XL-2-1024-MS.pth --dump_path output/pretrained_models/PixArt-Sigma-XL-2-1024-MS --only_transformer=True --image_size=1024 --version sigma
 ```
 
+---
 # ⏬ Available Models
 All models will be automatically downloaded [here](#12-download-pretrained-checkpoint). You can also choose to download manually from this [url](https://huggingface.co/PixArt-alpha/PixArt-Sigma).
 
@@ -232,7 +246,7 @@ All models will be automatically downloaded [here](#12-download-pretrained-check
 | PixArt-α-512-DMD | 0.6B    | Diffusers: [PixArt-Alpha-DMD-XL-2-512x512](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512)                                                                                                                                                     | [coming soon]( )     |
 | PixArt-Σ-1024    | 0.6B    | pth: [PixArt-Sigma-XL-2-1024-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) <br/> Diffusers: [PixArt-Sigma-XL-2-1024-MS](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS) | [coming soon]( )     |
 
-
+---
 ## 💪To-Do List
 We will try our best to release
 
@@ -244,3 +258,18 @@ We will try our best to release
 - [ ] Diffusers (stable official version)
 - [ ] Training code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
 - [ ] Model zoo (2K)
+
+---
+# 🤗Acknowledgements
+- Thanks to [PixArt-α](https://github.com/PixArt-alpha/PixArt-alpha), [DiT](https://github.com/facebookresearch/DiT) and [OpenDMD](https://github.com/Zeqiang-Lai/OpenDMD) for their wonderful work and codebase!
+- Thanks to [Diffusers](https://github.com/huggingface/diffusers) for their wonderful technical support and awesome collaboration!
+- Thanks to [Hugging Face](https://github.com/huggingface) for sponsoring the nicely demo!
+
+# 📖BibTeX
+    @misc{chen2024pixartsigma,
+      title={PixArt-\Sigma: Weak-to-Strong Training of Diffusion Transformer for 4K Text-to-Image Generation},
+      author={Junsong Chen and Chongjian Ge and Enze Xie and Yue Wu and Lewei Yao and Xiaozhe Ren and Zhongdao Wang and Ping Luo and Huchuan Lu and Zhenguo Li},
+      year={2024},
+      eprint={2403.04692},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
