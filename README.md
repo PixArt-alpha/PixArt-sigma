@@ -44,11 +44,10 @@ training & inference code & toy data are released!!!
 ## Contents
 * [Weak-to-Strong](#-compare-with-pixart-α)
 * [Training](#-how-to-train)
-* [Download Models](#12-download-pretrained-checkpoint)
-* [Data Tree](#11-downloading-the-toy-dataset)
 * [Inference](#-how-to-test)
-* [Launch Demo](#3-pixart-demo)
+* [Available Models](#-available-models)
 * [Use diffusers](#2-integration-in-diffusers)
+* [Launch Demo](#3-pixart-demo)
 * [Acknowledgement](#acknowledgements)
 * [Citation](#bibtex)
 * [TODO](#to-do-list)
