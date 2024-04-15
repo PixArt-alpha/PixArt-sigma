@@ -136,7 +136,7 @@ git lfs install
 git clone https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers output/pixart_sigma_sdxlvae_T5_diffusers
 
 # PixArt-Sigma checkpoints
-python tools/download.py
+python tools/download.py # environment HF_ENDPOINT can use for HuggingFace mirror
 ```
 
 ### 1.3 You are ready to train!
