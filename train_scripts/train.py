@@ -351,7 +351,7 @@ if __name__ == '__main__':
         text_encoder = T5EncoderModel.from_pretrained(
             args.pipeline_load_from, subfolder="text_encoder", torch_dtype=torch.float16).to(accelerator.device)
 
-    logger.info(f"vae sacle factor: {config.scale_factor}")
+    logger.info(f"vae scale factor: {config.scale_factor}")
 
     if config.visualize:
         # preparing embeddings for visualization. We put it here for saving GPU memory
@@ -386,18 +386,18 @@ if __name__ == '__main__':
             null_tokens = tokenizer(
                 "", max_length=max_length, padding="max_length", truncation=True, return_tensors="pt"
             ).to(accelerator.device)
-            null_token_emb = text_encoder(null_tokens.input_ids, attention_mask=txt_tokens.attention_mask)[0]
+            null_token_emb = text_encoder(null_tokens.input_ids, attention_mask=null_tokens.attention_mask)[0]
             torch.save(
                 {'uncond_prompt_embeds': null_token_emb, 'uncond_prompt_embeds_mask': null_tokens.attention_mask},
                 f'output/pretrained_models/null_embed_diffusers_{max_length}token.pth')
             if config.data.load_t5_feat:
                 del tokenizer
-                del txt_tokens
+                del text_encoder
             flush()
 
-    model_kwargs={"pe_interpolation": config.pe_interpolation, "config":config,
-                  "model_max_length": max_length, "qk_norm": config.qk_norm,
-                  "kv_compress_config": kv_compress_config, "micro_condition": config.micro_condition}
+    model_kwargs = {"pe_interpolation": config.pe_interpolation, "config": config,
+                    "model_max_length": max_length, "qk_norm": config.qk_norm,
+                    "kv_compress_config": kv_compress_config, "micro_condition": config.micro_condition}
 
     # build models
     train_diffusion = IDDPM(str(config.train_sampling_steps), learn_sigma=learn_sigma, pred_sigma=pred_sigma, snr=config.snr_loss)
