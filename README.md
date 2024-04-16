@@ -7,6 +7,7 @@
 <div align="center">
   <a href="https://pixart-alpha.github.io/PixArt-sigma-project/"><img src="https://img.shields.io/static/v1?label=Project%20Page&message=Github&color=blue&logo=github-pages"></a> &ensp;
   <a href="https://arxiv.org/abs/2403.04692"><img src="https://img.shields.io/static/v1?label=Paper&message=Arxiv:Sigma&color=red&logo=arxiv"></a> &ensp;
+  <a href="https://huggingface.co/spaces/PixArt-alpha/PixArt-Sigma"><img src="https://img.shields.io/static/v1?label=Demo&message=HuggingFace&color=yellow"></a> &ensp;
   <a href="https://discord.gg/rde6eaE5Ta"><img src="https://img.shields.io/static/v1?label=Discuss&message=Discord&color=purple&logo=discord"></a> &ensp;
 
 </div>
@@ -33,6 +34,7 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 
 ---
 ## Breaking News 🔥🔥!!
+- (🔥 New) Apr. 16, 2024. 💥 [PixArt-Σ Online Demo](https://huggingface.co/spaces/PixArt-alpha/PixArt-Sigma) is available!!
 - (🔥 New) Apr. 16, 2024. 💥 PixArt-α-DMD One Step Generator [training code](asset/docs/pixart_dmd.md) are all released!
 - (✅ New) Apr. 11, 2024. 💥 [PixArt-Σ Demo](#3-pixart-demo) & [PixArt-Σ Pipeline](#2-integration-in-diffusers)! PixArt-Σ supports `🧨 diffusers` using [patches](scripts/diffusers_patches.py) for fast experience!
 - (✅ New) Apr. 10, 2024. 💥 PixArt-α-DMD one step sampler [demo code](app/app_pixart_dmd.py) & [PixArt-α-DMD checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512) 512px are released!
