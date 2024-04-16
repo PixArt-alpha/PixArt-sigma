@@ -146,7 +146,7 @@ Optional(👇)
 ```bash
 # SDXL-VAE, T5 checkpoints
 git lfs install
-git clone https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers output/pixart_sigma_sdxlvae_T5_diffusers
+git clone https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers output/pretrained_models/pixart_sigma_sdxlvae_T5_diffusers
 
 # PixArt-Sigma checkpoints
 python tools/download.py
