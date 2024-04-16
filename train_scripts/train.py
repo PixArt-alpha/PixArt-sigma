@@ -353,6 +353,9 @@ if __name__ == '__main__':
 
     logger.info(f"vae scale factor: {config.scale_factor}")
 
+    # create a tmp folder in the output folder if it doesn't exist
+    Path('output/tmp').mkdir(parents=True, exist_ok=True)
+
     if config.visualize:
         # preparing embeddings for visualization. We put it here for saving GPU memory
         validation_prompts = [
