@@ -33,11 +33,12 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 
 ---
 ## Breaking News 🔥🔥!!
-- (🔥 New) Apr. 11, 2024. 💥 [PixArt-Σ Demo](#3-pixart-demo) & [PixArt-Σ Pipeline](#2-integration-in-diffusers)! PixArt-Σ supports `🧨 diffusers` using [patches](scripts/diffusers_patches.py) for fast experience!
-- (🔥 New) Apr. 10, 2024. 💥 PixArt-α-DMD one step sampler [demo code](app/app_pixart_dmd.py) & [PixArt-α-DMD checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512) 512px are released!
-- (🔥 New) Apr. 9, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) 1024px is released!
-- (🔥 New) Apr. 6, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/tree/main) 256px & 512px are released!
-- (🔥 New) Mar. 29, 2024. 💥 [PixArt-Σ](https://pixart-alpha.github.io/PixArt-sigma-project/) 
+- (🔥 New) Apr. 16, 2024. 💥 PixArt-α-DMD One Step Generator [training code](asset/docs/pixart_dmd.md) are all released!
+- (✅ New) Apr. 11, 2024. 💥 [PixArt-Σ Demo](#3-pixart-demo) & [PixArt-Σ Pipeline](#2-integration-in-diffusers)! PixArt-Σ supports `🧨 diffusers` using [patches](scripts/diffusers_patches.py) for fast experience!
+- (✅ New) Apr. 10, 2024. 💥 PixArt-α-DMD one step sampler [demo code](app/app_pixart_dmd.py) & [PixArt-α-DMD checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512) 512px are released!
+- (✅ New) Apr. 9, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) 1024px is released!
+- (✅ New) Apr. 6, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/tree/main) 256px & 512px are released!
+- (✅ New) Mar. 29, 2024. 💥 [PixArt-Σ](https://pixart-alpha.github.io/PixArt-sigma-project/) 
 training & inference code & toy data are released!!!
 
 ---
@@ -45,9 +46,17 @@ training & inference code & toy data are released!!!
 * [Weak-to-Strong](#-compare-with-pixart-α)
 * [Training](#-how-to-train)
 * [Inference](#-how-to-test)
+
+* [Feature extraction* (Optional)](asset/docs/data_feature_extraction.md)
 * [Available Models](#-available-models)
 * [Use diffusers](#2-integration-in-diffusers)
 * [Launch Demo](#3-pixart-demo)
+
+* [One step Generation (DMD)](asset/docs/pixart_dmd.md)
+* [LCM: coming soon]
+* [ControlNet: coming soon]
+* [ComfyUI: coming soon]
+
 * [Acknowledgement](#acknowledgements)
 * [Citation](#bibtex)
 * [TODO](#to-do-list)
@@ -71,7 +80,7 @@ training & inference code & toy data are released!!!
 # 🔧 Dependencies and Installation
 
 - Python >= 3.9 (Recommend to use [Anaconda](https://www.anaconda.com/download/#linux) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
-- [PyTorch >= 2.0.0+cu11.7](https://pytorch.org/)
+- [PyTorch >= 2.0.1+cu11.7](https://pytorch.org/)
 
 ```bash
 conda create -n pixart python==3.9.0
@@ -254,8 +263,8 @@ We will try our best to release
 - [x] Inference code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
 - [x] Model zoo (256/512/1024)
 - [x] Diffusers (for fast experience)
+- [x] Training code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
 - [ ] Diffusers (stable official version)
-- [ ] Training code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
 - [ ] Model zoo (2K)
 
 ---
