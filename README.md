@@ -43,20 +43,22 @@ training & inference code & toy data are released!!!
 
 ---
 ## Contents
+-Main
 * [Weak-to-Strong](#-compare-with-pixart-α)
 * [Training](#-how-to-train)
 * [Inference](#-how-to-test)
-
-* [Feature extraction* (Optional)](asset/docs/data_feature_extraction.md)
-* [Available Models](#-available-models)
 * [Use diffusers](#2-integration-in-diffusers)
 * [Launch Demo](#3-pixart-demo)
+* [Available Models](#-available-models)
 
+-Guidance
+* [Feature extraction* (Optional)](asset/docs/data_feature_extraction.md)
 * [One step Generation (DMD)](asset/docs/pixart_dmd.md)
 * [LCM: coming soon]
 * [ControlNet: coming soon]
 * [ComfyUI: coming soon]
 
+-Others
 * [Acknowledgement](#acknowledgements)
 * [Citation](#bibtex)
 * [TODO](#to-do-list)
