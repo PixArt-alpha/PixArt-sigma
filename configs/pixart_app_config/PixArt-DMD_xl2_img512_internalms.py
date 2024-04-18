@@ -13,7 +13,7 @@ image_size = 512
 # model setting
 model = 'PixArtMS_XL_2'     # model for multi-scale training
 fp32_attention = True
-load_from = "output/pretrained_models/pixart_alpha_512px_284000_diffusers"
+load_from = "PixArt-alpha/PixArt-XL-2-512x512"
 vae_pretrained = "output/pretrained_models/sd-vae-ft-ema"
 tiny_vae_pretrained = "output/pretrained_models/tinyvae"
 aspect_ratio_type = 'ASPECT_RATIO_512'
