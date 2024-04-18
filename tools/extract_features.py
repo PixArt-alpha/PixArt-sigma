@@ -181,6 +181,7 @@ def extract_caption_t5():
     count = 0
 
     t5_save_dir = os.path.join(args.t5_save_root, f"{args.caption_label}_caption_features_new".replace('prompt_', ''))
+    t5_save_dir = t5_save_dir if args.save_path_suffix is None else f"{t5_save_dir}_{args.save_path_suffix}"
     os.umask(0o000)  # file permission: 666; dir permission: 777
     os.makedirs(t5_save_dir, exist_ok=True)
 
@@ -209,6 +210,7 @@ def extract_img_vae(bs):
     print('VAE Loaded')
 
     vae_save_dir = f'{args.vae_save_root}/img_sdxl_vae_features_{image_resize}resolution_new'
+    vae_save_dir = vae_save_dir if args.save_path_suffix is None else f"{vae_save_dir}_{args.save_path_suffix}"
     os.umask(0o000)  # file permission: 666; dir permission: 777
     os.makedirs(vae_save_dir, exist_ok=True)
     interpolation = InterpolationMode.BILINEAR
@@ -277,6 +279,7 @@ def extract_img_vae_multiscale(bs=1):
     vae = AutoencoderKL.from_pretrained(f'{args.vae_models_dir}').to(device)
 
     signature = ''
+    work_dir = work_dir if args.save_path_suffix is None else f"{work_dir}_{args.save_path_suffix}"
 
     aspect_ratio_type = eval(f"ASPECT_RATIO_{image_resize}")
     print(f"Aspect Ratio Here: {aspect_ratio_type}")
@@ -303,7 +306,8 @@ def get_args():
     parser.add_argument("--run_vae_feature_extract", action='store_true', help="run VAE feature extracting")
     parser.add_argument('--start_index', default=0, type=int)
     parser.add_argument('--end_index', default=50000000, type=int)
-    
+    parser.add_argument('--save_path_suffix', default=None, type=str)
+
     ### vae feauture extraction
     parser.add_argument("--multi_scale", action='store_true', help="multi-scale feature extraction")
     parser.add_argument("--img_size", default=512, type=int, help="image scale for VAE feature extraction")
@@ -319,7 +323,7 @@ def get_args():
 
     ### for t5 feature
     parser.add_argument("--max_length", default=300, type=int, help="max token length for T5")
-    parser.add_argument('--t5_json_path', type=str)    # absolute path or relative to this project
+    parser.add_argument('--t5_json_path', default='pixart-sigma-toy-dataset/InternData/data_info.json', type=str)    # absolute path or relative to this project
     parser.add_argument(
         '--t5_models_dir', default='PixArt-alpha/PixArt-XL-2-1024-MS', type=str
     )
@@ -341,13 +345,13 @@ if __name__ == '__main__':
     # prepare extracted image vae features for training
     if args.run_vae_feature_extract:
         if args.multi_scale:
-            assert args.img_size  in [512, 1024, 2048, 2880],\
+            assert args.img_size in [512, 1024, 2048, 2880],\
                 "Multi Scale VAE feature is not for 256px in PixArt-Sigma."
             print('Extracting Multi-scale Image Resolution based on %s' % image_resize)
             extract_img_vae_multiscale(bs=1)    # recommend bs = 1 for AspectRatioBatchSampler
         else:
-            assert args.img_size == 256,\
-                f"Single Scale VAE feature is only for 256px in PixArt-Sigma. NOT for {args.img_size}px"
+            assert args.img_size in [256, 512],\
+                f"Single Scale VAE feature is only for 256px and 512px_DMD in PixArt-Sigma. NOT for {args.img_size}px"
             print('Extracting Single Image Resolution %s' % image_resize)
             extract_img_vae(bs=2)
 

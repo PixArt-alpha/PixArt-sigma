@@ -195,6 +195,7 @@ def generate(
     images = pipe(
         prompt=prompt,
         timesteps=[400],
+        negative_prompt=negative_prompt,
         width=width,
         height=height,
         guidance_scale=1,

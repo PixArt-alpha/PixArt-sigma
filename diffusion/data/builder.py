@@ -24,6 +24,13 @@ def get_data_path(data_dir):
     return os.path.join(DATA_ROOT, data_dir)
 
 
+def get_data_root_and_path(data_dir):
+    if os.path.isabs(data_dir):
+        return data_dir
+    global DATA_ROOT
+    return DATA_ROOT, os.path.join(DATA_ROOT, data_dir)
+
+
 def build_dataset(cfg, resolution=224, **kwargs):
     logger = get_root_logger()
 

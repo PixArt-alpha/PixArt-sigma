@@ -159,7 +159,6 @@ if torch.cuda.is_available():
         )
         del transformer
 
-
     if os.getenv('CONSISTENCY_DECODER', False):
         print("Using DALL-E 3 Consistency Decoder")
         pipe.vae = ConsistencyDecoderVAE.from_pretrained("openai/consistency-decoder", torch_dtype=torch.float16)
@@ -240,6 +239,7 @@ def generate(
         prompt=prompt,
         width=width,
         height=height,
+        negative_prompt=negative_prompt,
         guidance_scale=guidance_scale,
         num_inference_steps=num_inference_steps,
         generator=generator,
