@@ -363,6 +363,7 @@ if __name__ == '__main__':
             "A photo of beautiful mountain with realistic sunset and blue lake, highly detailed, masterpiece",
         ]
         skip = True
+        Path('output/tmp').mkdir(parents=True, exist_ok=True)
         for prompt in validation_prompts:
             if not (os.path.exists(f'output/tmp/{prompt}_{max_length}token.pth')
                     and os.path.exists(f'output/pretrained_models/null_embed_diffusers_{max_length}token.pth')):
