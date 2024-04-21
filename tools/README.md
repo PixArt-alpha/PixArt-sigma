@@ -18,14 +18,14 @@ After :
     - InternData
         - data_info.json
     - InternImgs
-        - 0.png
-        - 1.jpg
-        - 2.webp
+        - image1.png
+        - image2.jpg
+        - image3.webp
 
 The script detects all images with a paired caption and copies these in the InternImgs folder and its prompt in the data_info.json.
 
 The usage is the following:
 
- `convert_images_to_json [params] images_path output_path`
+ `python convert_images_to_json.py [params] images_path output_path`
 
 The caption file extension is by default .txt but the user can change it with the argument `--caption_extension .caption` for example.

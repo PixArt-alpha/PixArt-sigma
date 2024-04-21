@@ -42,7 +42,6 @@ def main():
 
     # create a table which will contain all the entries
     json_entries = []
-    image_count = 0
     with open(data_info_path, 'w') as json_file:
         for (dirpath, dirnames, filenames) in walk(input_folder):
             for filename in tqdm.tqdm(filenames):
@@ -52,11 +51,10 @@ def main():
                 # check if an image exists for this caption
                 image_filename = filename[:-len(caption_extension)]
 
-                for image_extension in ['.jpg', '.png', '.jpeg']:
+                for image_extension in ['.jpg', '.png', '.jpeg', 'webp']:
                     image_path = Path(dirpath).joinpath(image_filename + image_extension)
                     if path.exists(image_path):
-                        write_entry(json_entries, dirpath, image_path, Path(dirpath).joinpath(filename), str(image_count) + image_extension, intern_imgs_folder)
-                        image_count = image_count + 1
+                        write_entry(json_entries, dirpath, image_path, Path(dirpath).joinpath(filename), image_filename + image_extension, intern_imgs_folder)
                         break
     
         # use the entries
