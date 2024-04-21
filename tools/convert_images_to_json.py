@@ -77,6 +77,7 @@ def write_entry(json_entries, folder, image_path, caption_path, image_filename, 
         entry['ratio'] = ratio
         entry['path'] = image_filename
         entry['prompt'] = prompt
+        entry['sharegpt4v'] = ''
 
         json_entries.append(entry)
 
