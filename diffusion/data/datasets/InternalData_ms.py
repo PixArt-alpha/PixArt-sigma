@@ -15,7 +15,13 @@ def get_closest_ratio(height: float, width: float, ratios: dict):
     closest_ratio = min(ratios.keys(), key=lambda ratio: abs(float(ratio) - aspect_ratio))
     return ratios[closest_ratio], float(closest_ratio)
 
-
+# helper function for replacing image extensions with an another
+def replace_img_ext(item, dst_ext : str) -> str:
+    return '_'.join(item['path'].rsplit('/', 1)).\
+                    replace('.png', dst_ext).\
+                    replace('.jpg', dst_ext).\
+                    replace('.webp', dst_ext)
+    
 @DATASETS.register_module()
 class InternalDataMS(InternalData):
     def __init__(self,
@@ -66,8 +72,8 @@ class InternalDataMS(InternalData):
             meta_data_clean = [item for item in meta_data if item['ratio'] <= 4]
             self.meta_data_clean.extend(meta_data_clean)
             self.img_samples.extend([os.path.join(self.root.replace('InternData', "InternImgs"), item['path']) for item in meta_data_clean])
-            self.txt_feat_samples.extend([os.path.join(self.root, 'caption_features', '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npz')) for item in meta_data_clean])
-            self.vae_feat_samples.extend([os.path.join(self.root, f'img_vae_fatures_{resolution}_multiscale/ms', '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npy')) for item in meta_data_clean])
+            self.txt_feat_samples.extend([os.path.join(self.root, 'caption_features', replace_img_ext(item, '.npz')) for item in meta_data_clean])
+            self.vae_feat_samples.extend([os.path.join(self.root, f'img_vae_fatures_{resolution}_multiscale/ms', replace_img_ext(item, '.npy')) for item in meta_data_clean])
 
         # Set loader and extensions
         if load_vae_feat:
@@ -210,6 +216,7 @@ class InternalDataMSSigma(InternalDataSigma):
         logger.info(f"ratio of real user prompt: {self.real_prompt_ratio}")
 
         image_list_json = image_list_json if isinstance(image_list_json, list) else [image_list_json]
+        
         for json_file in image_list_json:
             meta_data = self.load_json(os.path.join(self.root, json_file))
             logger.info(f"{json_file} data volume: {len(meta_data)}")
@@ -225,14 +232,14 @@ class InternalDataMSSigma(InternalDataSigma):
                 os.path.join(
                     self.root,
                     'caption_features_new',
-                    '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npz')
+                    replace_img_ext(item, '.npz')
                 ) for item in meta_data_clean
             ])
             self.gpt4v_txt_feat_samples.extend([
                 os.path.join(
                     self.root,
                     'sharegpt4v_caption_features_new',
-                    '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npz')
+                    replace_img_ext(item, '.npz')
                 ) for item in meta_data_clean
             ])
             self.vae_feat_samples.extend(
@@ -240,7 +247,7 @@ class InternalDataMSSigma(InternalDataSigma):
                     os.path.join(
                         self.root + suffix,
                         f'img_sdxl_vae_features_{resolution}resolution_ms_new',
-                        '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npy')
+                        replace_img_ext(item, '.npy')
                     ) for item in meta_data_clean
                 ])
 
