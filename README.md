@@ -159,7 +159,7 @@ Selecting your desired config file from [config files dir](configs/pixart_sigma_
 python -m torch.distributed.launch --nproc_per_node=1 --master_port=12345 \
           train_scripts/train.py \
           configs/pixart_sigma_config/PixArt_sigma_xl2_img512_internalms.py \
-          --load-from output/pretrained_models/PixArt-Sigma-XL-2-512-MS.pth
+          --load-from output/pretrained_models/PixArt-Sigma-XL-2-512-MS.pth \
           --work-dir output/your_first_pixart-exp \
           --debug
 ```
