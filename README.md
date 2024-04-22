@@ -269,7 +269,9 @@ We will try our best to release
 - [x] Diffusers (for fast experience)
 - [x] Training code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
 - [ ] Diffusers (stable official version)
-- [ ] Model zoo (2K)
+- [ ] Model zoo (2K, KV Compress...)
+- [ ] LoRA training & inference code
+- [ ] LoRA training & inference code
 
 ---
 # 🤗Acknowledgements
@@ -285,3 +287,7 @@ We will try our best to release
       eprint={2403.04692},
       archivePrefix={arXiv},
       primaryClass={cs.CV}
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=PixArt-alpha/PixArt-Sigma&type=Date)](https://star-history.com/#PixArt-alpha/PixArt-Sigma&Date)
