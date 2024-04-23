@@ -1,6 +1,7 @@
 import os
 import random
 from PIL import Image
+import json
 import numpy as np
 import torch
 from torchvision.datasets.folder import default_loader, IMG_EXTENSIONS
@@ -10,7 +11,11 @@ from torchvision import transforms as T
 from diffusion.data.builder import get_data_path, DATASETS
 from diffusion.utils.logger import get_root_logger
 
-import json
+
+# helper function for replacing image extensions with an another
+def replace_img_ext(path, dst_ext: str) -> str:
+    return path.replace('.png', dst_ext).replace('.jpg', dst_ext).replace('.webp', dst_ext)
+
 
 @DATASETS.register_module()
 class InternalData(Dataset):
@@ -51,8 +56,20 @@ class InternalData(Dataset):
             meta_data_clean = [item for item in meta_data if item['ratio'] <= 4]
             self.meta_data_clean.extend(meta_data_clean)
             self.img_samples.extend([os.path.join(self.root.replace('InternData', "InternImgs"), item['path']) for item in meta_data_clean])
-            self.txt_feat_samples.extend([os.path.join(self.root, 'caption_feature_wmask', '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npz')) for item in meta_data_clean])
-            self.vae_feat_samples.extend([os.path.join(self.root, f'img_vae_features_{resolution}resolution/noflip', '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npy')) for item in meta_data_clean])
+            self.txt_feat_samples.extend([
+                os.path.join(
+                    self.root,
+                    'caption_feature_wmask',
+                    replace_img_ext('_'.join(item['path'].rsplit('/', 1)), '.npz')
+            ) for item in meta_data_clean
+            ])
+            self.vae_feat_samples.extend([
+                os.path.join(
+                    self.root,
+                    f'img_vae_features_{resolution}resolution/noflip',
+                    replace_img_ext('_'.join(item['path'].rsplit('/', 1)), '.npy')
+                ) for item in meta_data_clean
+            ])
             self.prompt_samples.extend([item['prompt'] for item in meta_data_clean])
 
         # Set loader and extensions
