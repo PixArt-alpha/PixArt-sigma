@@ -170,7 +170,7 @@ def parse_args():
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="sd-model-finetuned-lora",
+        default="pixart-model-finetuned-lora",
         help="The output directory where the model predictions and checkpoints will be written.",
     )
     parser.add_argument(
@@ -378,6 +378,12 @@ def parse_args():
         default=4,
         help="The dimension of the LoRA update matrices.",
     )
+    parser.add_argument(
+        "--micro_conditions",
+        default=False,
+        action="store_true",
+        help="Only set to true for `PixArt-alpha/PixArt-XL-2-1024-MS`"
+    )
 
     parser.add_argument("--local-rank", type=int, default=-1)
 
@@ -396,7 +402,8 @@ def parse_args():
     return args
 
 
-DATASET_NAME_MAPPING = {"lambdalabs/pokemon-blip-captions": ("image", "text"), }
+DATASET_NAME_MAPPING = {"lambdalabs/pokemon-blip-captions": ("image", "text"),
+                        "svjack/pokemon-blip-captions-en-zh": ("image", "en_text")}
 
 
 def main():
@@ -834,7 +841,7 @@ def main():
 
                 # Prepare micro-conditions.
                 added_cond_kwargs = {"resolution": None, "aspect_ratio": None}
-                if getattr(transformer, 'module', transformer).config.sample_size == 128:
+                if getattr(transformer, 'module', transformer).config.sample_size == 128 and args.micro_conditions:
                     resolution = torch.tensor([args.resolution, args.resolution]).repeat(bsz, 1)
                     aspect_ratio = torch.tensor([float(args.resolution / args.resolution)]).repeat(bsz, 1)
                     resolution = resolution.to(dtype=weight_dtype, device=latents.device)
