@@ -34,14 +34,14 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 
 ---
 ## Breaking News 🔥🔥!!
+- (🔥 New) Apr. 23, 2024. 💥 [PixArt-Σ 2K ckpt](#12-download-pretrained-checkpoint) is released!!
 - (🔥 New) Apr. 16, 2024. 💥 [PixArt-Σ Online Demo](https://huggingface.co/spaces/PixArt-alpha/PixArt-Sigma) is available!!
 - (🔥 New) Apr. 16, 2024. 💥 PixArt-α-DMD One Step Generator [training code](asset/docs/pixart_dmd.md) are all released!
 - (✅ New) Apr. 11, 2024. 💥 [PixArt-Σ Demo](#3-pixart-demo) & [PixArt-Σ Pipeline](#2-integration-in-diffusers)! PixArt-Σ supports `🧨 diffusers` using [patches](scripts/diffusers_patches.py) for fast experience!
 - (✅ New) Apr. 10, 2024. 💥 PixArt-α-DMD one step sampler [demo code](app/app_pixart_dmd.py) & [PixArt-α-DMD checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512) 512px are released!
 - (✅ New) Apr. 9, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) 1024px is released!
 - (✅ New) Apr. 6, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/tree/main) 256px & 512px are released!
-- (✅ New) Mar. 29, 2024. 💥 [PixArt-Σ](https://pixart-alpha.github.io/PixArt-sigma-project/) 
-training & inference code & toy data are released!!!
+- (✅ New) Mar. 29, 2024. 💥 [PixArt-Σ](https://pixart-alpha.github.io/PixArt-sigma-project/) training & inference code & toy data are released!!!
 
 ---
 ## Contents
@@ -227,7 +227,7 @@ image.save("./catcus.png")
 ```bash
 pip install git+https://github.com/huggingface/diffusers
 
-# PixArt-Sigma
+# PixArt-Sigma 1024px
 DEMO_PORT=12345 python app/app_pixart_sigma.py
 
 # PixArt-Sigma One step Sampler(DMD)
@@ -257,6 +257,7 @@ All models will be automatically downloaded [here](#12-download-pretrained-check
 | PixArt-Σ-512     | 0.6B    | pth: [PixArt-Sigma-XL-2-512-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-512-MS.pth) <br/> Diffusers: [PixArt-Sigma-XL-2-512-MS](https://huggingface.co/PixArt-alpha/PixArt-Sigma-XL-2-512-MS)     | [coming soon]( )     |
 | PixArt-α-512-DMD | 0.6B    | Diffusers: [PixArt-Alpha-DMD-XL-2-512x512](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512)                                                                                                                              | [coming soon]( )     |
 | PixArt-Σ-1024    | 0.6B    | pth: [PixArt-Sigma-XL-2-1024-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) <br/> Diffusers: [PixArt-Sigma-XL-2-1024-MS](https://huggingface.co/PixArt-alpha/PixArt-Sigma-XL-2-1024-MS) | [coming soon]( )     |
+| PixArt-Σ-2K      | 0.6B    | pth: [PixArt-Sigma-XL-2-2K-MS.pth](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-2K-MS.pth) <br/> Diffusers: [PixArt-Sigma-XL-2-2K-MS](https://huggingface.co/PixArt-alpha/PixArt-Sigma-XL-2-2K-MS)         | [coming soon]( )     |
 
 ---
 ## 💪To-Do List
@@ -265,11 +266,11 @@ We will try our best to release
 - [x] Training code
 - [x] Inference code
 - [x] Inference code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
-- [x] Model zoo (256/512/1024)
+- [x] Model zoo (256/512/1024/2K)
 - [x] Diffusers (for fast experience)
 - [x] Training code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
-- [ ] Diffusers (stable official version)
-- [ ] Model zoo (2K, KV Compress...)
+- [ ] Model zoo (KV Compress...)
+- [ ] Diffusers (stable official version: https://github.com/huggingface/diffusers/pull/7654)
 - [ ] LoRA training & inference code
 - [ ] LoRA training & inference code
 
