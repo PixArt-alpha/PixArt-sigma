@@ -1,5 +1,5 @@
 from transformers import T5EncoderModel
-from diffusers import PixArtAlphaPipeline
+from diffusers import PixArtAlphaPipeline, Transformer2DModel
 import torch
 import gc
 import argparse
@@ -15,37 +15,48 @@ def main(args):
     num_steps = args.num_steps
     guidance_scale = args.guidance_scale
     seed = args.seed
+    low_vram = args.low_vram
 
-    text_encoder = T5EncoderModel.from_pretrained(
-        repo_path,
-        subfolder="text_encoder",
-        load_in_8bit=True
-    )
+    pipe = None
+    if low_vram:
+        print('low_vram')
+        text_encoder = T5EncoderModel.from_pretrained(
+            repo_path,
+            subfolder="text_encoder",
+            load_in_8bit=True
+        )
+        pipe = PixArtAlphaPipeline.from_pretrained(
+            repo_path,
+            text_encoder=text_encoder,
+            transformer=None,
+        )
 
-    pipe = PixArtAlphaPipeline.from_pretrained(
-        repo_path,
-        text_encoder=text_encoder,
-        transformer=None,
-    )
+        with torch.no_grad():
+            prompt = positive_prompt
+            negative = negative_prompt
+            prompt_embeds, prompt_attention_mask, negative_embeds, negative_prompt_attention_mask = pipe.encode_prompt(prompt, negative_prompt=negative)
 
-    with torch.no_grad():
-        prompt = positive_prompt
-        negative = negative_prompt
-        prompt_embeds, prompt_attention_mask, negative_embeds, negative_prompt_attention_mask = pipe.encode_prompt(prompt, negative_prompt=negative)
+        def flush():
+            gc.collect()
+            torch.cuda.empty_cache()
 
-    def flush():
-        gc.collect()
-        torch.cuda.empty_cache()
+        pipe.text_encoder = None
+        del text_encoder
+        flush()
 
-    del text_encoder
-    del pipe
-    flush()
+        pipe.transformer = Transformer2DModel.from_pretrained(repo_path, subfolder='transformer')
+        pipe.to('cuda')
+    else:
+        print('low_vram=False')
+        pipe = PixArtAlphaPipeline.from_pretrained(
+            repo_path
+        ).to('cuda')
 
-    pipe = PixArtAlphaPipeline.from_pretrained(
-        repo_path,
-        text_encoder=None,
-        torch_dtype=torch.float16,
-    ).to("cuda")
+        with torch.no_grad():
+            prompt = positive_prompt
+            negative = negative_prompt
+            prompt_embeds, prompt_attention_mask, negative_embeds, negative_prompt_attention_mask = pipe.encode_prompt(prompt, negative_prompt=negative)
+
     generator = torch.Generator()
     
     if seed != -1:
@@ -84,6 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--height', required=False, default=512, type=int, help='Image height to generate')
     parser.add_argument('--num_steps', required=False, default=20, type=int, help='Number of inference steps')
     parser.add_argument('--guidance_scale', required=False, default=7.0, type=float, help='Guidance scale')
+    parser.add_argument('--low_vram', required=False, action='store_true')
 
     args = parser.parse_args()
     main(args)
