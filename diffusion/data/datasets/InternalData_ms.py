@@ -3,12 +3,13 @@ import numpy as np
 import torch
 import random
 from torchvision.datasets.folder import default_loader
-from diffusion.data.datasets.InternalData import InternalData, InternalDataSigma
+from diffusion.data.datasets.InternalData import InternalData, InternalDataSigma, replace_img_ext
 from diffusion.data.builder import get_data_path, DATASETS
 from diffusion.utils.logger import get_root_logger
 import torchvision.transforms as T
 from torchvision.transforms.functional import InterpolationMode
 from diffusion.data.datasets.utils import *
+
 
 def get_closest_ratio(height: float, width: float, ratios: dict):
     aspect_ratio = height / width
@@ -65,9 +66,23 @@ class InternalDataMS(InternalData):
             self.ori_imgs_nums += len(meta_data)
             meta_data_clean = [item for item in meta_data if item['ratio'] <= 4]
             self.meta_data_clean.extend(meta_data_clean)
-            self.img_samples.extend([os.path.join(self.root.replace('InternData', "InternImgs"), item['path']) for item in meta_data_clean])
-            self.txt_feat_samples.extend([os.path.join(self.root, 'caption_features', '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npz')) for item in meta_data_clean])
-            self.vae_feat_samples.extend([os.path.join(self.root, f'img_vae_fatures_{resolution}_multiscale/ms', '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npy')) for item in meta_data_clean])
+            self.img_samples.extend([
+                os.path.join(self.root.replace('InternData', "InternImgs"), item['path']) for item in meta_data_clean
+            ])
+            self.txt_feat_samples.extend([
+                os.path.join(
+                    self.root,
+                    'caption_features',
+                    replace_img_ext('_'.join(item['path'].rsplit('/', 1)), '.npz')
+                ) for item in meta_data_clean
+            ])
+            self.vae_feat_samples.extend([
+                os.path.join(
+                    self.root,
+                    f'img_vae_fatures_{resolution}_multiscale/ms',
+                    replace_img_ext('_'.join(item['path'].rsplit('/', 1)), '.npy')
+                ) for item in meta_data_clean
+            ])
 
         # Set loader and extensions
         if load_vae_feat:
@@ -210,6 +225,7 @@ class InternalDataMSSigma(InternalDataSigma):
         logger.info(f"ratio of real user prompt: {self.real_prompt_ratio}")
 
         image_list_json = image_list_json if isinstance(image_list_json, list) else [image_list_json]
+        
         for json_file in image_list_json:
             meta_data = self.load_json(os.path.join(self.root, json_file))
             logger.info(f"{json_file} data volume: {len(meta_data)}")
@@ -225,14 +241,14 @@ class InternalDataMSSigma(InternalDataSigma):
                 os.path.join(
                     self.root,
                     'caption_features_new',
-                    '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npz')
+                    replace_img_ext('_'.join(item['path'].rsplit('/', 1)), '.npz')
                 ) for item in meta_data_clean
             ])
             self.gpt4v_txt_feat_samples.extend([
                 os.path.join(
                     self.root,
                     'sharegpt4v_caption_features_new',
-                    '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npz')
+                    replace_img_ext('_'.join(item['path'].rsplit('/', 1)), '.npz')
                 ) for item in meta_data_clean
             ])
             self.vae_feat_samples.extend(
@@ -240,7 +256,7 @@ class InternalDataMSSigma(InternalDataSigma):
                     os.path.join(
                         self.root + suffix,
                         f'img_sdxl_vae_features_{resolution}resolution_ms_new',
-                        '_'.join(item['path'].rsplit('/', 1)).replace('.png', '.npy')
+                        replace_img_ext('_'.join(item['path'].rsplit('/', 1)), '.npy')
                     ) for item in meta_data_clean
                 ])
 
