@@ -16,5 +16,5 @@ bs4
 einops
 xformers==0.0.19
 optimum
-peft==0.6.2
+peft
 came-pytorch

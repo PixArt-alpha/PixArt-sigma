@@ -1,7 +1,7 @@
 ## Summary
 
 **We combine [PixArt-α](https://github.com/PixArt-alpha/PixArt-alpha) and [DMD](https://arxiv.org/abs/2311.18828)
-to achieve one step image generation. This document will guide to how to train and test.**
+to achieve one step image generation. This document will guide you how to train and test.**
 
 ![compare samples](../imgs/noise_snr.png)
 
