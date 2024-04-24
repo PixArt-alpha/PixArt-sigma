@@ -31,8 +31,8 @@ accelerate launch --num_processes=1 --main_process_port=36667  train_scripts/tra
   --resolution=512 \
   --random_flip \
   --train_batch_size=16 \
-  --num_train_epochs=200 \
-  --checkpointing_steps=100 \
+  --num_train_epochs=80 \
+  --checkpointing_steps=1000 \
   --learning_rate=1e-05 \
   --lr_scheduler="constant" \
   --lr_warmup_steps=0 \
@@ -68,7 +68,11 @@ del transformer
 
 pipe.to(device)
 
-prompt = "A small cactus with a happy face in the Sahara desert."
+prompt = "a drawing of a green pokemon with red eyes"
 image = pipe(prompt).images[0]
-image.save("./catcus.png")
+image.save("./pokemon_with_red_eyes.png")
 ```
+
+---
+## Samples
+![compare samples](../imgs/lora_512.png)
