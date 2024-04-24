@@ -34,9 +34,11 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 
 ---
 ## Breaking News 🔥🔥!!
-- (🔥 New) Apr. 23, 2024. 💥 [PixArt-Σ 2K ckpt](#12-download-pretrained-checkpoint) is released!!
-- (🔥 New) Apr. 16, 2024. 💥 [PixArt-Σ Online Demo](https://huggingface.co/spaces/PixArt-alpha/PixArt-Sigma) is available!!
-- (🔥 New) Apr. 16, 2024. 💥 PixArt-α-DMD One Step Generator [training code](asset/docs/pixart_dmd.md) are all released!
+- (🔥 New) Apr. 24, 2024. 💥 [🧨 diffusers](https://github.com/huggingface/diffusers/pull/7654) support us now! Congrats!🎉
+- (🔥 New) Apr. 24, 2024. 💥 [LoRA code](asset/docs/pixart_lora.md) is released!!
+- (✅ New) Apr. 23, 2024. 💥 [PixArt-Σ 2K ckpt](#12-download-pretrained-checkpoint) is released!!
+- (✅ New) Apr. 16, 2024. 💥 [PixArt-Σ Online Demo](https://huggingface.co/spaces/PixArt-alpha/PixArt-Sigma) is available!!
+- (✅ New) Apr. 16, 2024. 💥 PixArt-α-DMD One Step Generator [training code](asset/docs/pixart_dmd.md) are all released!
 - (✅ New) Apr. 11, 2024. 💥 [PixArt-Σ Demo](#3-pixart-demo) & [PixArt-Σ Pipeline](#2-integration-in-diffusers)! PixArt-Σ supports `🧨 diffusers` using [patches](scripts/diffusers_patches.py) for fast experience!
 - (✅ New) Apr. 10, 2024. 💥 PixArt-α-DMD one step sampler [demo code](app/app_pixart_dmd.py) & [PixArt-α-DMD checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Alpha-DMD-XL-2-512x512) 512px are released!
 - (✅ New) Apr. 9, 2024. 💥 [PixArt-Σ checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma/blob/main/PixArt-Sigma-XL-2-1024-MS.pth) 1024px is released!
@@ -56,6 +58,7 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 -Guidance
 * [Feature extraction* (Optional)](asset/docs/data_feature_extraction.md)
 * [One step Generation (DMD)](asset/docs/pixart_dmd.md)
+* [LoRA & DoRA](asset/docs/pixart_lora.md)
 * [LCM: coming soon]
 * [ControlNet: coming soon]
 * [ComfyUI: coming soon]
@@ -269,10 +272,10 @@ We will try our best to release
 - [x] Model zoo (256/512/1024/2K)
 - [x] Diffusers (for fast experience)
 - [x] Training code of One Step Sampling with [DMD](https://arxiv.org/abs/2311.18828) 
+- [x] Diffusers (stable official version: https://github.com/huggingface/diffusers/pull/7654)
+- [x] LoRA training & inference code
 - [ ] Model zoo (KV Compress...)
-- [ ] Diffusers (stable official version: https://github.com/huggingface/diffusers/pull/7654)
-- [ ] LoRA training & inference code
-- [ ] LoRA training & inference code
+- [ ] ControlNet training & inference code
 
 ---
 # 🤗Acknowledgements
