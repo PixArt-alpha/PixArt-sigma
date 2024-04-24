@@ -4,8 +4,19 @@ import torch
 import gc
 import argparse
 import pathlib
+from pathlib import Path
+import sys
+
+current_file_path = Path(__file__).resolve()
+sys.path.insert(0, str(current_file_path.parent.parent))
+from scripts.diffusers_patches import pixart_sigma_init_patched_inputs
 
 def main(args):
+    setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
     repo_path = args.repo_path
     output_image = pathlib.Path(args.output)
     positive_prompt = args.positive_prompt
@@ -16,6 +27,7 @@ def main(args):
     guidance_scale = args.guidance_scale
     seed = args.seed
     low_vram = args.low_vram
+    num_images = args.num_images
 
     pipe = None
     if low_vram:
@@ -23,12 +35,14 @@ def main(args):
         text_encoder = T5EncoderModel.from_pretrained(
             repo_path,
             subfolder="text_encoder",
-            load_in_8bit=True
+            load_in_8bit=True,
+            torch_dtype=torch.float16,
         )
         pipe = PixArtAlphaPipeline.from_pretrained(
             repo_path,
             text_encoder=text_encoder,
             transformer=None,
+            torch_dtype=torch.float16,
         )
 
         with torch.no_grad():
@@ -44,12 +58,14 @@ def main(args):
         del text_encoder
         flush()
 
-        pipe.transformer = Transformer2DModel.from_pretrained(repo_path, subfolder='transformer')
+        pipe.transformer = Transformer2DModel.from_pretrained(repo_path, subfolder='transformer',
+                                                              load_in_8bit=True,
+                                                              torch_dtype=torch.float16)
         pipe.to('cuda')
     else:
         print('low_vram=False')
         pipe = PixArtAlphaPipeline.from_pretrained(
-            repo_path
+            repo_path,
         ).to('cuda')
 
         with torch.no_grad():
@@ -64,6 +80,11 @@ def main(args):
     else:
         generator = None
 
+    prompt_embeds = prompt_embeds.to('cuda')
+    negative_embeds = negative_embeds.to('cuda')
+    prompt_attention_mask = prompt_attention_mask.to('cuda')
+    negative_prompt_attention_mask = negative_prompt_attention_mask.to('cuda')
+    
     latents = pipe(
         negative_prompt=None, 
         num_inference_steps=num_steps,
@@ -74,15 +95,23 @@ def main(args):
         negative_prompt_embeds=negative_embeds,
         prompt_attention_mask=prompt_attention_mask,
         negative_prompt_attention_mask=negative_prompt_attention_mask,
-        num_images_per_prompt=1,
+        num_images_per_prompt=num_images,
         output_type="latent",
         generator=generator,
     ).images
 
+    words = str(output_image).split('.')
+    filename = words[0]
+    extension = words[1]
+
     with torch.no_grad():
-        image = pipe.vae.decode(latents / pipe.vae.config.scaling_factor, return_dict=False)[0]
-    image = pipe.image_processor.postprocess(image, output_type="pil")[0]
-    image.save(output_image)
+        images = pipe.vae.decode(latents / pipe.vae.config.scaling_factor, return_dict=False)[0]
+        images = pipe.image_processor.postprocess(images, output_type="pil")
+
+    i = 0
+    for image in images:
+        image.save(filename + str(i) + '.' + extension)
+        i = i + 1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -96,6 +125,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_steps', required=False, default=20, type=int, help='Number of inference steps')
     parser.add_argument('--guidance_scale', required=False, default=7.0, type=float, help='Guidance scale')
     parser.add_argument('--low_vram', required=False, action='store_true')
+    parser.add_argument('--num_images', required=False, default=1, type=int, help='Number of images per prompt')
 
     args = parser.parse_args()
     main(args)
