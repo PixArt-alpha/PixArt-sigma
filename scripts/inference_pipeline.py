@@ -1,5 +1,5 @@
 from transformers import T5EncoderModel
-from diffusers import PixArtAlphaPipeline, Transformer2DModel
+from diffusers import PixArtAlphaPipeline, Transformer2DModel,DEISMultistepScheduler, DPMSolverMultistepScheduler
 import torch
 import gc
 import argparse
@@ -28,6 +28,11 @@ def main(args):
     seed = args.seed
     low_vram = args.low_vram
     num_images = args.num_images
+    scheduler_type = args.scheduler
+    karras = args.karras
+    algorithm_type = args.algorithm
+    beta_schedule = args.beta_schedule
+    use_lu_lambdas = args.use_lu_lambdas
 
     pipe = None
     if low_vram:
@@ -85,6 +90,15 @@ def main(args):
     prompt_attention_mask = prompt_attention_mask.to('cuda')
     negative_prompt_attention_mask = negative_prompt_attention_mask.to('cuda')
     
+    if scheduler_type == 'deis':
+        pipe.scheduler = DEISMultistepScheduler.from_config(pipe.scheduler.config)
+    else:
+        pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+
+    pipe.scheduler.beta_schedule  = beta_schedule
+    pipe.scheduler.algorithm_type = algorithm_type
+    pipe.scheduler.use_karras_sigmas = karras
+    pipe.scheduler.use_lu_lambdas = use_lu_lambdas
     latents = pipe(
         negative_prompt=None, 
         num_inference_steps=num_steps,
@@ -126,6 +140,11 @@ if __name__ == '__main__':
     parser.add_argument('--guidance_scale', required=False, default=7.0, type=float, help='Guidance scale')
     parser.add_argument('--low_vram', required=False, action='store_true')
     parser.add_argument('--num_images', required=False, default=1, type=int, help='Number of images per prompt')
+    parser.add_argument('--scheduler', required=False, default='dpm', type=str, choices=['dpm', 'deis'])
+    parser.add_argument('--karras', required=False, action='store_true')
+    parser.add_argument('--algorithm', required=False, default='sde-dpmsolver++', type=str, choices=['dpmsolver', 'dpmsolver++', 'sde-dpmsolver', 'sde-dpmsolver++'])
+    parser.add_argument('--beta_schedule', required=False, default='linear', type=str, choices=['linear', 'scaled_linear', 'squaredcos_cap_v2'])
+    parser.add_argument('--use_lu_lambdas', required=False, action='store_true')
 
     args = parser.parse_args()
     main(args)
