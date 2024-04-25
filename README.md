@@ -194,13 +194,12 @@ python scripts/interface.py --model_path output/pretrained_models/PixArt-Sigma-X
 > ```bash
 > pip install git+https://github.com/huggingface/diffusers
 > ```
+> 
+> For `diffusers<0.28.0`, check this [script](scripts/diffusers_patches.py) for help.
 ```python
 import torch
-from diffusers import Transformer2DModel
-from scripts.diffusers_patches import pixart_sigma_init_patched_inputs, PixArtSigmaPipeline
+from diffusers import Transformer2DModel, PixArtSigmaPipeline
 
-assert getattr(Transformer2DModel, '_init_patched_inputs', False), "Need to Upgrade diffusers: pip install git+https://github.com/huggingface/diffusers"
-setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 weight_dtype = torch.float16
 

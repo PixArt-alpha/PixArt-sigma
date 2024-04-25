@@ -163,6 +163,38 @@ ASPECT_RATIO_512_BIN = {
     "4.0": [1024.0, 256.0],
 }
 
+# for diffusers < 0.28.0, try to use PixArtSigmaPipeline with:
+"""
+from diffusers import Transformer2DModel
+from scripts.diffusers_patches import pixart_sigma_init_patched_inputs, PixArtSigmaPipeline
+
+assert getattr(Transformer2DModel, '_init_patched_inputs', False), "Need to Upgrade diffusers: pip install git+https://github.com/huggingface/diffusers"
+setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+weight_dtype = torch.float16
+
+transformer = Transformer2DModel.from_pretrained(
+    "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS", 
+    subfolder='transformer', 
+    torch_dtype=weight_dtype,
+    use_safetensors=True,
+)
+pipe = PixArtSigmaPipeline.from_pretrained(
+    "PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers",
+    transformer=transformer,
+    torch_dtype=weight_dtype,
+    use_safetensors=True,
+)
+pipe.to(device)
+
+# Enable memory optimizations.
+# pipe.enable_model_cpu_offload()
+
+prompt = "A small cactus with a happy face in the Sahara desert."
+image = pipe(prompt).images[0]
+image.save("./catcus.png")
+"""
 
 def pipeline_pixart_alpha_call(
         self,

@@ -10,8 +10,8 @@ sys.path.insert(0, str(current_file_path.parent.parent))
 import torch
 from transformers import T5EncoderModel, T5Tokenizer
 
-from diffusers import AutoencoderKL, DPMSolverMultistepScheduler, PixArtAlphaPipeline, Transformer2DModel
-from scripts.diffusers_patches import pixart_sigma_init_patched_inputs
+from diffusers import AutoencoderKL, DPMSolverMultistepScheduler, Transformer2DModel,\
+    PixArtAlphaPipeline, PixArtSigmaPipeline
 
 
 ckpt_id = "PixArt-alpha"
@@ -47,6 +47,7 @@ def main(args):
     converted_state_dict["adaln_single.emb.timestep_embedder.linear_2.bias"] = state_dict.pop("t_embedder.mlp.2.bias")
 
     if args.micro_condition:
+        assert args.version == 'alpha' and args.image_size // 8 == 128, "Only use for PixArt-Alpha 1024MS model"
         # Resolution.
         converted_state_dict["adaln_single.emb.resolution_embedder.linear_1.weight"] = state_dict.pop(
             "csize_embedder.mlp.0.weight"
@@ -154,12 +155,6 @@ def main(args):
     converted_state_dict["scale_shift_table"] = state_dict.pop("final_layer.scale_shift_table")
 
     # PixArt XL/2
-    # tmp patches for diffusers PixArtSigmaPipeline Implementation
-    print(
-        "Changing _init_patched_inputs method of diffusers.models.Transformer2DModel "
-        "using scripts.diffusers_patches.pixart_sigma_init_patched_inputs")
-    setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
-
     transformer = Transformer2DModel(
         sample_size=args.image_size // 8,
         num_layers=28,
@@ -177,6 +172,7 @@ def main(args):
         norm_eps=1e-6,
         caption_channels=4096,
         interpolation_scale=interpolation_scale[args.image_size],
+        use_additional_conditions=args.micro_condition,
     )
     transformer.load_state_dict(converted_state_dict, strict=True)
 
@@ -194,22 +190,24 @@ def main(args):
     if args.only_transformer:
         transformer.save_pretrained(os.path.join(args.dump_path, "transformer"))
     else:
-        if args.version == "alpha":
-            # pixart-alpha vae link: https://huggingface.co/PixArt-alpha/PixArt-alpha/tree/main/sd-vae-ft-ema
-            vae = AutoencoderKL.from_pretrained(f"{ckpt_id}/PixArt-alpha", subfolder="sd-vae-ft-ema")
-        elif args.verision == "sigma":
-            # pixart-Sigma vae link: https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers/tree/main/vae
-            vae = AutoencoderKL.from_pretrained(f"{ckpt_id}/pixart_sigma_sdxlvae_T5_diffusers", subfolder="vae")
-        else:
-            raise ValueError(f"{args.version} is NOT defined. Only alpha or sigma is available")
-
         scheduler = DPMSolverMultistepScheduler()
 
         tokenizer = T5Tokenizer.from_pretrained(f"{ckpt_id}/pixart_sigma_sdxlvae_T5_diffusers", subfolder="tokenizer")
         text_encoder = T5EncoderModel.from_pretrained(
             f"{ckpt_id}/pixart_sigma_sdxlvae_T5_diffusers", subfolder="text_encoder")
 
-        pipeline = PixArtAlphaPipeline(
+        if args.version == "alpha":
+            # pixart-alpha vae link: https://huggingface.co/PixArt-alpha/PixArt-alpha/tree/main/sd-vae-ft-ema
+            vae = AutoencoderKL.from_pretrained(f"{ckpt_id}/PixArt-alpha", subfolder="sd-vae-ft-ema")
+            PixArtPipeline = PixArtAlphaPipeline
+        elif args.verision == "sigma":
+            # pixart-Sigma vae link: https://huggingface.co/PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers/tree/main/vae
+            vae = AutoencoderKL.from_pretrained(f"{ckpt_id}/pixart_sigma_sdxlvae_T5_diffusers", subfolder="vae")
+            PixArtPipeline = PixArtSigmaPipeline
+        else:
+            raise ValueError(f"{args.version} is NOT defined. Only alpha or sigma is available")
+
+        pipeline = PixArtPipeline(
             tokenizer=tokenizer, text_encoder=text_encoder, transformer=transformer, vae=vae, scheduler=scheduler
         )
 

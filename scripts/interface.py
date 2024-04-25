@@ -162,10 +162,10 @@ if __name__ == '__main__':
     max_sequence_length = {"alpha": 120, "sigma": 300}[args.version]
     weight_dtype = torch.float16
     micro_condition = True if args.version == 'alpha' and args.image_size == 1024 else False
-    if args.image_size in [512, 1024, 2048, 2880]:
+    if args.image_size in [512, 1024, 2048]:
         model = PixArtMS_XL_2(
             input_size=latent_size,
-            pe_interpolation=pe_interpolation[args.image_size],
+            pe_interpolation=pe_interpolation[args.imrage_size],
             micro_condition=micro_condition,
             model_max_length=max_sequence_length,
         ).to(device)

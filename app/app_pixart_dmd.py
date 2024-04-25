@@ -15,7 +15,7 @@ from diffusers import ConsistencyDecoderVAE, PixArtAlphaPipeline, Transformer2DM
 import torch
 from typing import Tuple
 from datetime import datetime
-from scripts.diffusers_patches import pipeline_pixart_alpha_call
+
 
 DESCRIPTION = """![Logo](https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/logo-sigma.png)
         # PixArt-Alpha One Step 512px
@@ -131,9 +131,6 @@ if torch.cuda.is_available():
     pipe.transformer = Transformer2DModel.from_pretrained(model_path, subfolder="transformer", torch_dtype=weight_dtype)
     pipe.scheduler = DDPMScheduler.from_pretrained(model_path, subfolder="scheduler")
 
-    print("Changing __call__ method of PixArtAlphaPipeline using scripts.diffusers_patches.pipeline_pixart_alpha_call")
-    setattr(PixArtAlphaPipeline, '__call__', pipeline_pixart_alpha_call)
-
     if os.getenv('CONSISTENCY_DECODER', False):
         print("Using DALL-E 3 Consistency Decoder")
         pipe.vae = ConsistencyDecoderVAE.from_pretrained("openai/consistency-decoder", torch_dtype=torch.float16)
@@ -192,14 +189,19 @@ def generate(
         negative_prompt = None  # type: ignore
     prompt, negative_prompt = apply_style(style, prompt, negative_prompt)
 
+    # special setting for PixArt-DMD
+    timesteps = [400]
+    guidance_scale = 1
+    num_inference_steps = 1
+
     images = pipe(
         prompt=prompt,
-        timesteps=[400],
+        timesteps=timesteps,
         negative_prompt=negative_prompt,
         width=width,
         height=height,
-        guidance_scale=1,
-        num_inference_steps=1,
+        guidance_scale=guidance_scale,
+        num_inference_steps=num_inference_steps,
         generator=generator,
         num_images_per_prompt=num_imgs,
         use_resolution_binning=use_resolution_binning,

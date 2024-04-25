@@ -10,13 +10,12 @@ import random
 import gradio as gr
 import numpy as np
 import uuid
-from diffusers import ConsistencyDecoderVAE, DPMSolverMultistepScheduler, Transformer2DModel, AutoencoderKL
+from diffusers import ConsistencyDecoderVAE, DPMSolverMultistepScheduler, Transformer2DModel, PixArtSigmaPipeline
 import torch
 from typing import Tuple
 from datetime import datetime
 from diffusion.sa_solver_diffusers import SASolverScheduler
 from peft import PeftModel
-from scripts.diffusers_patches import pixart_sigma_init_patched_inputs, PixArtSigmaPipeline
 
 
 DESCRIPTION = """![Logo](https://raw.githubusercontent.com/PixArt-alpha/PixArt-sigma-project/master/static/images/logo-sigma.png)
@@ -99,6 +98,7 @@ SCHEDULE_NAME = ["DPM-Solver", "SA-Solver"]
 DEFAULT_SCHEDULE_NAME = "DPM-Solver"
 NUM_IMAGES_PER_PROMPT = 1
 
+
 def apply_style(style_name: str, positive: str, negative: str = "") -> Tuple[str, str]:
     p, n = styles.get(style_name, styles[DEFAULT_STYLE_NAME])
     if not negative:
@@ -129,35 +129,22 @@ if torch.cuda.is_available():
     if 'Sigma' in args.model_path:
         T5_token_max_length = 300
 
-    # tmp patches for diffusers PixArtSigmaPipeline Implementation
-    print(
-        "Changing _init_patched_inputs method of diffusers.models.Transformer2DModel "
-        "using scripts.diffusers_patches.pixart_sigma_init_patched_inputs")
-    setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
-
-    if not args.is_lora:
-        transformer = Transformer2DModel.from_pretrained(
-            model_path,
-            subfolder='transformer',
-            torch_dtype=weight_dtype,
-        )
-        pipe = PixArtSigmaPipeline.from_pretrained(
-            args.pipeline_load_from,
-            transformer=transformer,
-            torch_dtype=weight_dtype,
-            use_safetensors=True,
-        )
-    else:
+    transformer = Transformer2DModel.from_pretrained(
+        model_path,
+        subfolder='transformer',
+        torch_dtype=weight_dtype,
+    )
+    if args.is_lora:
         assert args.lora_repo_id is not None
-        transformer = Transformer2DModel.from_pretrained(args.repo_id, subfolder="transformer", torch_dtype=torch.float16)
         transformer = PeftModel.from_pretrained(transformer, args.lora_repo_id)
-        pipe = PixArtSigmaPipeline.from_pretrained(
-            args.repo_id,
-            transformer=transformer,
-            torch_dtype=torch.float16,
-            use_safetensors=True,
-        )
-        del transformer
+
+    pipe = PixArtSigmaPipeline.from_pretrained(
+        args.pipeline_load_from,
+        transformer=transformer,
+        torch_dtype=weight_dtype,
+        use_safetensors=True,
+    )
+    del transformer
 
     if os.getenv('CONSISTENCY_DECODER', False):
         print("Using DALL-E 3 Consistency Decoder")

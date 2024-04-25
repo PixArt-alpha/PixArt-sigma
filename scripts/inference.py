@@ -155,7 +155,7 @@ if __name__ == '__main__':
     # only support fixed latent size currently
     latent_size = args.image_size // 8
     max_sequence_length = {"alpha": 120, "sigma": 300}[args.version]
-    pe_interpolation = {256: 0.5, 512: 1, 1024: 2}     # trick for positional embedding interpolation
+    pe_interpolation = {256: 0.5, 512: 1, 1024: 2, 2048: 4}     # trick for positional embedding interpolation
     micro_condition = True if args.version == 'alpha' and args.image_size == 1024 else False
     sample_steps_dict = {'iddpm': 100, 'dpm-solver': 20, 'sa-solver': 25}
     sample_steps = args.step if args.step != -1 else sample_steps_dict[args.sampling_algo]
@@ -164,7 +164,7 @@ if __name__ == '__main__':
 
     # model setting
     micro_condition = True if args.version == 'alpha' and args.image_size == 1024 else False
-    if args.image_size in [512, 1024, 2048, 2880]:
+    if args.image_size in [512, 1024, 2048]:
         model = PixArtMS_XL_2(
             input_size=latent_size,
             pe_interpolation=pe_interpolation[args.image_size],
