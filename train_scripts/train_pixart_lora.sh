@@ -23,4 +23,5 @@ accelerate launch --num_processes=1 --main_process_port=36667  train_scripts/tra
   --gradient_checkpointing \
   --checkpoints_total_limit=10 \
   --validation_epochs=5 \
+  --max_token_length=120 \
   --rank=16

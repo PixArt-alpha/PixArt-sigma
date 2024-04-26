@@ -384,6 +384,12 @@ def parse_args():
         action="store_true",
         help="Only set to true for `PixArt-alpha/PixArt-XL-2-1024-MS`"
     )
+    parser.add_argument(
+        "--max_token_length",
+        type=int,
+        default=300,
+        help="max length for the tokenized text embedding.",
+    )
 
     parser.add_argument("--local-rank", type=int, default=-1)
 
@@ -453,7 +459,7 @@ def main():
                                   token=args.hub_token).repo_id
 
     # See Section 3.1. of the paper.
-    max_length = 120
+    max_length = args.max_token_length
 
     # For mixed precision training we cast all non-trainable weights
     # (vae, non-lora text_encoder and non-lora transformer) to half-precision
