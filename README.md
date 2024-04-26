@@ -34,7 +34,7 @@ we will try to keep this repo as simple as possible so that everyone in the PixA
 
 ---
 ## Breaking News 🔥🔥!!
-- (🔥 New) Apr. 24, 2024. 💥 [🧨 diffusers](https://github.com/huggingface/diffusers/pull/7654) support us now! Congrats!🎉
+- (🔥 New) Apr. 24, 2024. 💥 [🧨 diffusers](https://github.com/huggingface/diffusers/pull/7654) support us now! Congrats!🎉. Remember to update your [diffusers checkpoint](https://huggingface.co/PixArt-alpha/PixArt-Sigma-XL-2-2K-MS/tree/main/transformer) once to make it available.
 - (🔥 New) Apr. 24, 2024. 💥 [LoRA code](asset/docs/pixart_lora.md) is released!!
 - (✅ New) Apr. 23, 2024. 💥 [PixArt-Σ 2K ckpt](#12-download-pretrained-checkpoint) is released!!
 - (✅ New) Apr. 16, 2024. 💥 [PixArt-Σ Online Demo](https://huggingface.co/spaces/PixArt-alpha/PixArt-Sigma) is available!!
