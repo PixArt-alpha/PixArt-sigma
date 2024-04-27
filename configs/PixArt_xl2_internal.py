@@ -34,6 +34,13 @@ grad_checkpointing = False
 gradient_clip = 1.0
 gc_step = 1
 auto_lr = dict(rule='sqrt')
+validation_prompts = [
+    "dog",
+    "portrait photo of a girl, photograph, highly detailed face, depth of field",
+    "Self-portrait oil painting, a beautiful cyborg with golden hair, 8k",
+    "Astronaut in a jungle, cold color palette, muted colors, detailed, 8k",
+    "A photo of beautiful mountain with realistic sunset and blue lake, highly detailed, masterpiece",
+]
 
 # we use different weight decay with the official implementation since it results better result
 optimizer = dict(type='AdamW', lr=1e-4, weight_decay=3e-2, eps=1e-10)
@@ -77,3 +84,4 @@ num_ddim_timesteps=50
 w_max = 15.0
 w_min = 3.0
 ema_decay = 0.95
+
