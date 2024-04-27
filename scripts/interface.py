@@ -165,7 +165,7 @@ if __name__ == '__main__':
     if args.image_size in [512, 1024, 2048]:
         model = PixArtMS_XL_2(
             input_size=latent_size,
-            pe_interpolation=pe_interpolation[args.imrage_size],
+            pe_interpolation=pe_interpolation[args.image_size],
             micro_condition=micro_condition,
             model_max_length=max_sequence_length,
         ).to(device)
