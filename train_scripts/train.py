@@ -45,7 +45,7 @@ def set_fsdp_env():
 def log_validation(model, step, device, vae=None):
     torch.cuda.empty_cache()
     model = accelerator.unwrap_model(model).eval()
-    hw = torch.tensor([[1024, 1024]], dtype=torch.float, device=device).repeat(1, 1)
+    hw = torch.tensor([[image_size, image_size]], dtype=torch.float, device=device).repeat(1, 1)
     ar = torch.tensor([[1.]], device=device).repeat(1, 1)
     null_y = torch.load(f'output/pretrained_models/null_embed_diffusers_{max_length}token.pth')
     null_y = null_y['uncond_prompt_embeds'].to(device)
