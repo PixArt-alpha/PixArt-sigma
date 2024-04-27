@@ -358,13 +358,7 @@ if __name__ == '__main__':
 
     if config.visualize:
         # preparing embeddings for visualization. We put it here for saving GPU memory
-        validation_prompts = [
-            "dog",
-            "portrait photo of a girl, photograph, highly detailed face, depth of field",
-            "Self-portrait oil painting, a beautiful cyborg with golden hair, 8k",
-            "Astronaut in a jungle, cold color palette, muted colors, detailed, 8k",
-            "A photo of beautiful mountain with realistic sunset and blue lake, highly detailed, masterpiece",
-        ]
+        validation_prompts = config.validation_prompts
         skip = True
         Path('output/tmp').mkdir(parents=True, exist_ok=True)
         for prompt in validation_prompts:
