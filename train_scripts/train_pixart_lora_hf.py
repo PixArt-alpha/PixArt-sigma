@@ -1066,6 +1066,9 @@ def main():
 
                 text_encoder.zero_grad()
                 text_encoder.requires_grad_(False)
+                params_to_clip = list(filter(lambda p: p.requires_grad, transformer.parameters()))
+                models_for_accumulate = transformer
+     
                 args.train_text_encoder = False
 
                 text_encoder = accelerator.unwrap_model(text_encoder, keep_fp32_wrapper=False)
