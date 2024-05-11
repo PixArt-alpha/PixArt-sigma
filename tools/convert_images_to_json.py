@@ -69,7 +69,7 @@ def write_entry(json_entries, folder, image_path, caption_path, image_filename, 
         image = Image.open(image_path)
         image_width = image.width
         image_height = image.height
-        ratio = image_width / image_height
+        ratio = image_height / image_width
 
         entry = {}
         entry['width'] = image_width
