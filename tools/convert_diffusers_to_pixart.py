@@ -24,6 +24,8 @@ def main(args):
     # load the pipe, but only the transformer
     repo_path = args.repo_path
     output_path = args.output_path
+    
+    setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
     pipe = PixArtAlphaPipeline.from_pretrained(repo_path, text_encoder=None)
 
     transformer = pipe.transformer
