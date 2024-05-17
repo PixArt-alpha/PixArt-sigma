@@ -6,6 +6,12 @@ import pathlib
 import argparse
 import gc
 import torch
+import sys
+
+from pathlib import Path
+current_file_path = Path(__file__).resolve()
+sys.path.insert(0, str(current_file_path.parent.parent))
+from scripts.diffusers_patches import pixart_sigma_init_patched_inputs
 
 interpolation_scale_sigma = {256: 0.5, 512: 1, 1024: 2, 2048: 4}
 ckpt_id = "PixArt-alpha/pixart_sigma_sdxlvae_T5_diffusers"
@@ -18,6 +24,7 @@ def main(args):
     safetensors_file = pathlib.Path(args.safetensors_path)
     image_size = args.image_size
 
+    setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
     pathlib.Path(args.output_folder).mkdir(parents=True, exist_ok=True)
     transformer = Transformer2DModel(
         sample_size=image_size // 8,
@@ -46,9 +53,9 @@ def main(args):
 
     transformer.save_pretrained(pathlib.Path.joinpath(pathlib.Path(args.output_folder), 'transformer'))
     scheduler = DPMSolverMultistepScheduler()
-    vae = AutoencoderKL.from_pretrained(ckpt_id, subfolder="vae").to('cuda')
+    vae = AutoencoderKL.from_pretrained(ckpt_id, subfolder="vae")
     tokenizer = T5Tokenizer.from_pretrained(ckpt_id, subfolder="tokenizer")
-    text_encoder = T5EncoderModel.from_pretrained(ckpt_id, subfolder="text_encoder").to('cuda')
+    text_encoder = T5EncoderModel.from_pretrained(ckpt_id, subfolder="text_encoder")
 
     pipe = PixArtAlphaPipeline(transformer=transformer, scheduler=scheduler, vae=vae, tokenizer=tokenizer, text_encoder=text_encoder)
     pipe.save_config(pathlib.Path(args.output_folder))
@@ -75,7 +82,7 @@ def main(args):
     del tokenizer
     flush_memory()
 
-    text_encoder = T5EncoderModel.from_pretrained(ckpt_id, subfolder="text_encoder").to('cuda')
+    text_encoder = T5EncoderModel.from_pretrained(ckpt_id, subfolder="text_encoder")
     text_encoder.save_pretrained(pathlib.Path.joinpath(pathlib.Path(args.output_folder), 'text_encoder'))
     del text_encoder
     flush_memory()
