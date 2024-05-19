@@ -59,6 +59,7 @@ training & inference code & toy data are released!!!
 * [LCM: coming soon]
 * [ControlNet: coming soon]
 * [ComfyUI: coming soon]
+* [Data reformat* (Optional)](asset/docs/convert_image2json.md)
 
 -Others
 * [Acknowledgement](#acknowledgements)
