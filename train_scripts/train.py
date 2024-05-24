@@ -42,7 +42,7 @@ def set_fsdp_env():
 
 
 @torch.inference_mode()
-def log_validation(model, step, device, vae=None):
+def log_validation(model, step, device, noise=None, vae=None):
     torch.cuda.empty_cache()
     model = accelerator.unwrap_model(model).eval()
     hw = torch.tensor([[image_size, image_size]], dtype=torch.float, device=device).repeat(1, 1)
@@ -54,9 +54,12 @@ def log_validation(model, step, device, vae=None):
     logger.info("Running validation... ")
     image_logs = []
     latents = []
-
+    
     for prompt in validation_prompts:
-        z = torch.randn(1, 4, latent_size, latent_size, device=device)
+        if noise:
+            z = torch.clone(noise).to(device)
+        else:
+            z = torch.randn(1, 4, latent_size, latent_size, device=device)
         embed = torch.load(f'output/tmp/{prompt}_{max_length}token.pth', map_location='cpu')
         caption_embs, emb_masks = embed['caption_embeds'].to(device), embed['emb_mask'].to(device)
         # caption_embs = caption_embs[:, None]
@@ -222,7 +225,7 @@ def train():
             if config.visualize and (global_step % config.eval_sampling_steps == 0 or (step + 1) == 1):
                 accelerator.wait_for_everyone()
                 if accelerator.is_main_process:
-                    log_validation(model, global_step, device=accelerator.device, vae=vae)
+                    log_validation(model, global_step, device=accelerator.device, noise=validation_noise, vae=vae)
 
         if epoch % config.save_model_epochs == 0 or epoch == config.num_epochs:
             accelerator.wait_for_everyone()
@@ -340,6 +343,7 @@ if __name__ == '__main__':
     logger.info(f"Initializing: {init_train} for training")
     image_size = config.image_size  # @param [256, 512]
     latent_size = int(image_size) // 8
+    validation_noise = torch.randn(1, 4, latent_size, latent_size, device='cpu') if getattr(config, 'deterministic_validation', False)
     pred_sigma = getattr(config, 'pred_sigma', True)
     learn_sigma = getattr(config, 'learn_sigma', True) and pred_sigma
     max_length = config.model_max_length
