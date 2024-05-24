@@ -343,7 +343,7 @@ if __name__ == '__main__':
     logger.info(f"Initializing: {init_train} for training")
     image_size = config.image_size  # @param [256, 512]
     latent_size = int(image_size) // 8
-    validation_noise = torch.randn(1, 4, latent_size, latent_size, device='cpu') if getattr(config, 'deterministic_validation', False)
+    validation_noise = torch.randn(1, 4, latent_size, latent_size, device='cpu') if getattr(config, 'deterministic_validation', False) else None
     pred_sigma = getattr(config, 'pred_sigma', True)
     learn_sigma = getattr(config, 'learn_sigma', True) and pred_sigma
     max_length = config.model_max_length
