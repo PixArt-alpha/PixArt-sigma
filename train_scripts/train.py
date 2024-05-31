@@ -57,7 +57,7 @@ def log_validation(model, step, device, vae=None):
     
     for prompt in validation_prompts:
         if validation_noise is not None:
-            z = torch.clone(noise).to(device)
+            z = torch.clone(validation_noise).to(device)
         else:
             z = torch.randn(1, 4, latent_size, latent_size, device=device)
         embed = torch.load(f'output/tmp/{prompt}_{max_length}token.pth', map_location='cpu')
