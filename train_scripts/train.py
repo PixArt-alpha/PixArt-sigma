@@ -42,7 +42,7 @@ def set_fsdp_env():
 
 
 @torch.inference_mode()
-def log_validation(model, step, device, noise=None, vae=None):
+def log_validation(model, step, device, vae=None):
     torch.cuda.empty_cache()
     model = accelerator.unwrap_model(model).eval()
     hw = torch.tensor([[image_size, image_size]], dtype=torch.float, device=device).repeat(1, 1)
@@ -56,7 +56,7 @@ def log_validation(model, step, device, noise=None, vae=None):
     latents = []
     
     for prompt in validation_prompts:
-        if noise:
+        if validation_noise is not None:
             z = torch.clone(noise).to(device)
         else:
             z = torch.randn(1, 4, latent_size, latent_size, device=device)
@@ -225,7 +225,7 @@ def train():
             if config.visualize and (global_step % config.eval_sampling_steps == 0 or (step + 1) == 1):
                 accelerator.wait_for_everyone()
                 if accelerator.is_main_process:
-                    log_validation(model, global_step, device=accelerator.device, noise=validation_noise, vae=vae)
+                    log_validation(model, global_step, device=accelerator.device, vae=vae)
 
         if epoch % config.save_model_epochs == 0 or epoch == config.num_epochs:
             accelerator.wait_for_everyone()
