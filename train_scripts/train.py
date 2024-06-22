@@ -385,6 +385,8 @@ if __name__ == '__main__':
                 torch.save(
                     {'caption_embeds': caption_emb, 'emb_mask': txt_tokens.attention_mask},
                     f'output/tmp/{prompt}_{max_length}token.pth')
+                del txt_tokens
+                del caption_emb
             null_tokens = tokenizer(
                 "", max_length=max_length, padding="max_length", truncation=True, return_tensors="pt"
             ).to(accelerator.device)
@@ -392,6 +394,9 @@ if __name__ == '__main__':
             torch.save(
                 {'uncond_prompt_embeds': null_token_emb, 'uncond_prompt_embeds_mask': null_tokens.attention_mask},
                 f'output/pretrained_models/null_embed_diffusers_{max_length}token.pth')
+            del null_tokens
+            del null_token_emb
+            
             if config.data.load_t5_feat:
                 del tokenizer
                 del text_encoder
