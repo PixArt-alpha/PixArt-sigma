@@ -208,7 +208,7 @@ def train():
             global_step += 1
             data_time_start = time.time()
 
-            if global_step % config.save_model_steps == 0:
+            if config.save_model_steps and global_step % config.save_model_steps == 0:
                 accelerator.wait_for_everyone()
                 if accelerator.is_main_process:
                     os.umask(0o000)
