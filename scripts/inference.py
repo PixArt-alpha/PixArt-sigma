@@ -19,8 +19,7 @@ from diffusion import IDDPM, DPMS, SASolverSampler
 from tools.download import find_model
 from diffusion.model.nets import PixArtMS_XL_2, PixArt_XL_2
 from diffusion.data.datasets import get_chunks
-from diffusion.data.datasets.utils import *
-
+import diffusion.data.datasets.utils as ds_utils
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -155,7 +154,7 @@ if __name__ == '__main__':
     # only support fixed latent size currently
     latent_size = args.image_size // 8
     max_sequence_length = {"alpha": 120, "sigma": 300}[args.version]
-    pe_interpolation = {256: 0.5, 512: 1, 1024: 2, 2048: 4}     # trick for positional embedding interpolation
+    pe_interpolation = args.image_size / 512
     micro_condition = True if args.version == 'alpha' and args.image_size == 1024 else False
     sample_steps_dict = {'iddpm': 100, 'dpm-solver': 20, 'sa-solver': 25}
     sample_steps = args.step if args.step != -1 else sample_steps_dict[args.sampling_algo]
@@ -164,17 +163,17 @@ if __name__ == '__main__':
 
     # model setting
     micro_condition = True if args.version == 'alpha' and args.image_size == 1024 else False
-    if args.image_size in [512, 1024, 2048]:
+    if args.image_size in [512, 1024, 2048] or args.version == 'sigma':
         model = PixArtMS_XL_2(
             input_size=latent_size,
-            pe_interpolation=pe_interpolation[args.image_size],
+            pe_interpolation=pe_interpolation,
             micro_condition=micro_condition,
             model_max_length=max_sequence_length,
         ).to(device)
     else:
         model = PixArt_XL_2(
             input_size=latent_size,
-            pe_interpolation=pe_interpolation[args.image_size],
+            pe_interpolation=pe_interpolation,
             model_max_length=max_sequence_length,
         ).to(device)
 
@@ -187,7 +186,7 @@ if __name__ == '__main__':
     print('Unexpected keys', unexpected)
     model.eval()
     model.to(weight_dtype)
-    base_ratios = eval(f'ASPECT_RATIO_{args.image_size}_TEST')
+    base_ratios = getattr(ds_utils, f'ASPECT_RATIO_{args.image_size}', ds_utils.ASPECT_RATIO_1024)
 
     if args.sdvae:
         # pixart-alpha vae link: https://huggingface.co/PixArt-alpha/PixArt-alpha/tree/main/sd-vae-ft-ema
