@@ -25,6 +25,8 @@ kv_compress_config = {
 num_workers=4
 train_sampling_steps = 1000
 visualize=False
+# Keep the same seed during validation
+deterministic_validation = False
 eval_sampling_steps = 250
 model_max_length = 120
 lora_rank = 4

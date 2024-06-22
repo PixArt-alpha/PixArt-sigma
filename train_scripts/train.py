@@ -54,9 +54,12 @@ def log_validation(model, step, device, vae=None):
     logger.info("Running validation... ")
     image_logs = []
     latents = []
-
+    
     for prompt in validation_prompts:
-        z = torch.randn(1, 4, latent_size, latent_size, device=device)
+        if validation_noise is not None:
+            z = torch.clone(validation_noise).to(device)
+        else:
+            z = torch.randn(1, 4, latent_size, latent_size, device=device)
         embed = torch.load(f'output/tmp/{prompt}_{max_length}token.pth', map_location='cpu')
         caption_embs, emb_masks = embed['caption_embeds'].to(device), embed['emb_mask'].to(device)
         # caption_embs = caption_embs[:, None]
@@ -340,6 +343,7 @@ if __name__ == '__main__':
     logger.info(f"Initializing: {init_train} for training")
     image_size = config.image_size  # @param [256, 512]
     latent_size = int(image_size) // 8
+    validation_noise = torch.randn(1, 4, latent_size, latent_size, device='cpu') if getattr(config, 'deterministic_validation', False) else None
     pred_sigma = getattr(config, 'pred_sigma', True)
     learn_sigma = getattr(config, 'learn_sigma', True) and pred_sigma
     max_length = config.model_max_length
