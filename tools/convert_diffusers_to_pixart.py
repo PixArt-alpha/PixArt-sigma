@@ -12,10 +12,6 @@ sys.path.insert(0, str(current_file_path.parent.parent))
 
 import torch
 
-from diffusers import Transformer2DModel
-from scripts.diffusers_patches import pixart_sigma_init_patched_inputs
-
-
 ckpt_id = "PixArt-alpha"
 # https://github.com/PixArt-alpha/PixArt-alpha/blob/0f55e922376d8b797edd44d25d0e7464b260dcab/scripts/inference.py#L125
 interpolation_scale_alpha = {256: 1, 512: 1, 1024: 2}
@@ -23,10 +19,9 @@ interpolation_scale_sigma = {256: 0.5, 512: 1, 1024: 2, 2048: 4}
 
 def main(args):
     # load the pipe, but only the transformer
-    repo_path = args.repo_path
-    output_path = args.output_path
+    repo_path = args.safetensor_path
+    output_path = args.pth_path
 
-    setattr(Transformer2DModel, '_init_patched_inputs', pixart_sigma_init_patched_inputs)
     transformer = safe_open(repo_path, framework='pt')
 
     state_dict = transformer.keys()
@@ -61,6 +56,7 @@ def main(args):
     converted_state_dict['t_block.1.bias'] = transformer.get_tensor('adaln_single.linear.bias')
 
     for depth in range(layer_depth):
+        print(f"Converting layer {depth}")
         converted_state_dict[f"blocks.{depth}.scale_shift_table"] = transformer.get_tensor(f"transformer_blocks.{depth}.scale_shift_table")
 
         # self attention
@@ -118,8 +114,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--repo_path', type=str, required=True, help='Path to the diffusers folder or huggingface repository')
-    parser.add_argument('--output_path', type=str, required=True, help='Path to the output file')
+    parser.add_argument('--safetensor_path', type=str, required=True, help='Path and filename of a safetensor file to convert. i.e. output/mymodel.safetensors')
+    parser.add_argument('--pth_path', type=str, required=True, help='Path and filename to the output file i.e. output/mymodel.pth')
 
     args = parser.parse_args()
     main(args)
