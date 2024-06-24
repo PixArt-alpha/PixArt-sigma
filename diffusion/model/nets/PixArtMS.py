@@ -9,7 +9,6 @@
 # MAE: https://github.com/facebookresearch/mae/blob/main/models_mae.py
 # --------------------------------------------------------
 import torch
-import pprint
 import torch.nn as nn
 from timm.models.layers import DropPath
 from timm.models.vision_transformer import Mlp
@@ -291,5 +290,4 @@ class PixArtMS(PixArt):
 #################################################################################
 @MODELS.register_module()
 def PixArtMS_XL_2(**kwargs):
-
     return PixArtMS(depth=kwargs['config']['depth'] or 28, hidden_size=1152, patch_size=2, num_heads=16, **kwargs)
