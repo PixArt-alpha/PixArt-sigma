@@ -51,7 +51,7 @@ def main():
                 # check if an image exists for this caption
                 image_filename = filename[:-len(caption_extension)]
 
-                for image_extension in ['.jpg', '.png', '.jpeg', 'webp']:
+                for image_extension in ['.jpg', '.png', '.jpeg', 'webp', '.JPEG', '.JPG']:
                     image_path = Path(dirpath).joinpath(image_filename + image_extension)
                     if path.exists(image_path):
                         write_entry(json_entries, dirpath, image_path, Path(dirpath).joinpath(filename), image_filename + image_extension, intern_imgs_folder)

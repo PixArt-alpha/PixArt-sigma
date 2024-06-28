@@ -14,7 +14,8 @@ from diffusion.utils.logger import get_root_logger
 
 # helper function for replacing image extensions with an another
 def replace_img_ext(path, dst_ext: str) -> str:
-    return path.replace('.png', dst_ext).replace('.jpg', dst_ext).replace('.webp', dst_ext)
+    return path.replace('.png', dst_ext).replace('.jpg', dst_ext).replace('.webp', dst_ext).replace('.jpeg', dst_ext).\
+        replace('.JPEG', dst_ext).replace('.JPG', dst_ext)
 
 
 @DATASETS.register_module()
