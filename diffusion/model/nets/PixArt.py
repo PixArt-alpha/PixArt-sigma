@@ -312,4 +312,4 @@ def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
 #################################################################################
 @MODELS.register_module()
 def PixArt_XL_2(**kwargs):
-    return PixArt(depth=28, hidden_size=1152, patch_size=2, num_heads=16, **kwargs)
+    return PixArt(depth=['config']['depth']  or 28, hidden_size=1152, patch_size=2, num_heads=16, **kwargs)
