@@ -1,7 +1,7 @@
 from diffusers import AutoencoderKL
 from PIL import Image
 from torchvision.transforms.functional import pil_to_tensor, to_pil_image
-from diffusers import PixArtSigmaPipeline, PixArtTransformer2DModel, DDPMScheduler
+from diffusers import PixArtSigmaPipeline, PixArtTransformer2DModel, DDPMScheduler, Transformer2DModel
 from transformers import T5EncoderModel
 from pathlib import Path
 import tqdm
@@ -20,7 +20,7 @@ from io import BytesIO
 from tqdm.contrib.concurrent import process_map
 from torchvision.transforms import Resize
 from diffusers.utils.torch_utils import randn_tensor
-from torch.utils.data import Dataset, DataLoader, Sampler
+from torch.utils.data import Dataset, DataLoader, Sampler, BatchSampler
 from multiprocessing import Pool
 from torch.utils.tensorboard import SummaryWriter
 import multiprocessing as mp
@@ -373,12 +373,13 @@ class EmbeddingsFeaturesDataset(Dataset):
             features = item[self.vae_features_column]
             return embeddings, features
 
-class BucketSampler(Sampler):
+class BucketSampler(BatchSampler):
     def __init__(self, files, max_batch_size, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str):
         self.hf_dataset = hf_dataset
         self.embeddings_column = embeddings_column
         self.vae_features_column = vae_features_column
         self.max_batch_size = max_batch_size
+        self.batch_size = max_batch_size
         self.buckets = {}
         self.num_images = 0
 
@@ -444,13 +445,17 @@ def flush():
 def validation_and_save(repository_path : str, transformer : PixArtTransformer2DModel, output_folder : str, logger : SummaryWriter,
                         global_step : int, logging_path, validation_prompts : list[str]):
     pipe = PixArtSigmaPipeline.from_pretrained(repository_path, text_encoder=None, tokenizer=None, torch_dtype=torch.float16,
-                                                transformer=transformer).to('cuda')
+                                                transformer=transformer).to(device=transformer.device)
     dataset = FilesDataset(Path(output_folder).joinpath('validation_embeddings'), extensions=['.emb'])
     dataloader = DataLoader(dataset)
 
     index = 0
     for batch, embeddings in tqdm.tqdm(enumerate(dataloader)):
         prompt_embeds, prompt_attention_mask, negative_embeds, negative_prompt_attention_mask = torch.load(embeddings[0])
+        prompt_embeds = prompt_embeds.to(device=transformer.device)
+        prompt_attention_mask = prompt_attention_mask.to(device=transformer.device)
+        negative_embeds = negative_embeds.to(device=transformer.device)
+        negative_prompt_attention_mask = negative_prompt_attention_mask.to(device=transformer.device)
         
         with torch.no_grad():
             latents = pipe(negative_prompt=None, prompt_embeds=prompt_embeds, negative_prompt_embeds=negative_embeds,
@@ -472,15 +477,14 @@ def validation_and_save(repository_path : str, transformer : PixArtTransformer2D
     
 def train(output_folder : str, num_epochs : int, batch_size : int, repository_path : str, learning_rate : float, steps_per_validation : int, epochs_per_validation : int,
           blank_transformer : bool, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str, validation_prompts : list[str]):
-    
     dataset = EmbeddingsFeaturesDataset(output_folder, hf_dataset, embeddings_column, vae_features_column)
     sampler = BucketSampler(dataset.files, batch_size, hf_dataset, embeddings_column, vae_features_column)
     dataloader = DataLoader(dataset, batch_sampler=sampler)
 
     # load the transformer
-    transformer = PixArtTransformer2DModel.from_pretrained(repository_path, subfolder='transformer').to(device='cuda')
+    transformer = Transformer2DModel.from_pretrained(repository_path, subfolder='transformer').to(device='cuda')
     if blank_transformer == True:
-        transformer = PixArtTransformer2DModel.from_config(transformer.config)
+        transformer = Transformer2DModel.from_config(transformer.config)
     transformer.gradient_checkpointing = True
     transformer.training = True
     scheduler = DDPMScheduler.from_pretrained(repository_path, subfolder='scheduler')
@@ -494,24 +498,28 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
     logs_dir = Path(output_folder).joinpath(f'logs{date}')
     logger = SummaryWriter(logs_dir)
 
+    resolution = transformer.config.interpolation_scale * 512
     # prepare multi-gpu training
     accelerator = Accelerator()
-    dataloader, transformer, optimizer = accelerator.prepare(dataloader, transformer, optimizer)
-    resolution = transformer.config.interpolation_scale * 512
+    transformer = transformer.to(accelerator.device)
+    #dataloader, transformer, optimizer = accelerator.prepare(dataloader, transformer, optimizer)
+    dataloader = accelerator.prepare(dataloader)
+    transformer = accelerator.prepare(transformer)
+    optimizer = accelerator.prepare(optimizer)
     added_cond_kwargs = {"resolution": resolution, "aspect_ratio": None}
 
     global_step = 0
+    dtype = accelerator.unwrap_model(transformer).dtype
+    device = accelerator.unwrap_model(transformer).device
     for epoch in tqdm.tqdm(range(num_epochs)):
-        if epoch % epochs_per_validation == 0:
-            validation_and_save(repository_path, transformer, output_folder, logger, global_step, logs_dir, validation_prompts)
+        if epoch % epochs_per_validation == 0 and accelerator.is_main_process:
+            validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts)
         
         for batch_embeds, batch_features in tqdm.tqdm(dataloader, desc='Batch:'):
-            if global_step % steps_per_validation == 0:
-                validation_and_save(repository_path, transformer, output_folder, logger, global_step, logs_dir, validation_prompts)
+            if global_step % steps_per_validation == 0 and accelerator.is_main_process:
+                validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts)
 
             with torch.no_grad():
-                device = transformer.device
-                dtype = transformer.dtype
                 prompt_embeds, prompt_attention_mask, negative_prompt_embeds, negative_prompt_attention_mask = batch_embeds
                 
                 # strip the second dimension
@@ -531,7 +539,7 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
                 latent_model_input = scheduler.scale_model_input(latent_model_input, timesteps)
 
             with accelerator.accumulate(transformer):
-                noise_pred = transformer(latent_model_input,
+                noise_pred = accelerator.unwrap_model(transformer)(latent_model_input,
                                         encoder_hidden_states=prompt_embeds,
                                         encoder_attention_mask=prompt_attention_mask,
                                         timestep=timesteps,
@@ -547,7 +555,8 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
             global_step = global_step + 1
     
     # final save
-    validation_and_save(repository_path, transformer, output_folder, logger, global_step, logs_dir, validation_prompts)
+    if accelerator.is_main_process:
+        validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts)
             
 
 if __name__ == '__main__':
