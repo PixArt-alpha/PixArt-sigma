@@ -31,7 +31,7 @@ import gc
 from datetime import datetime
 import argparse
 import requests
-from multiprocess import set_start_method
+from torch.multiprocessing import set_start_method
 
 import sys
 current_file_path = Path(__file__).resolve()
