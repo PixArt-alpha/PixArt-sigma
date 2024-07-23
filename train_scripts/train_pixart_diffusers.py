@@ -137,8 +137,9 @@ def extract_t5_embeddings(repository_path : str, captions_folder : str, output_f
     flush()
 
 def process_shard(lock, process_index, shard : datasets.Dataset, repository_path, dataset_caption_column, queue : mp.Queue):
-    
-    device = f"cuda:{(process_index or 0) % torch.cuda.device_count()}"
+    local_rank = int(os.getenv('LOCAL_RANK', 0))
+    device = torch.device(f'cuda:{local_rank}')
+    torch.cuda.set_device(device)
 
     with lock:
         pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=None, torch_dtype=torch.float16)
@@ -273,7 +274,10 @@ def extract_vae_features(repository_path : str, images_folder : str, output_fold
 
 def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_column, dataset_images_column, output_folder):
     def add_vae_column(batch, rank):
-        device = f"cuda:{(rank or 0) % torch.cuda.device_count()}"
+        local_rank = int(os.getenv('LOCAL_RANK', 0))
+        device = torch.device(f'cuda:{local_rank}')
+        torch.cuda.set_device(device)
+
         pipe = PixArtSigmaPipeline.from_pretrained(repository_path, text_encoder=None, tokenizer=None, torch_dtype=torch.float16
                                                ).to(device=device)
         image_processor = pipe.image_processor
