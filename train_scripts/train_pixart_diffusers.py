@@ -1,7 +1,7 @@
 from diffusers import AutoencoderKL
 from PIL import Image
 from torchvision.transforms.functional import pil_to_tensor, to_pil_image
-from diffusers import PixArtSigmaPipeline, PixArtTransformer2DModel, DDPMScheduler, Transformer2DModel
+from diffusers import PixArtSigmaPipeline, PixArtTransformer2DModel, DDPMScheduler
 from transformers import T5EncoderModel
 from pathlib import Path
 import tqdm
@@ -377,7 +377,7 @@ class BucketSampler(BatchSampler):
     def __init__(self, files, max_batch_size, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str):
         # initialize the same seed for every process
         random.seed(0)
-        
+
         self.hf_dataset = hf_dataset
         self.embeddings_column = embeddings_column
         self.vae_features_column = vae_features_column
@@ -446,7 +446,7 @@ def flush():
     torch.cuda.empty_cache()
 
 def validation_and_save(repository_path : str, transformer : PixArtTransformer2DModel, output_folder : str, logger : SummaryWriter,
-                        global_step : int, logging_path, validation_prompts : list[str]):
+                        global_step : int, logging_path, validation_prompts : list[str], push_to_hub = False):
     pipe = PixArtSigmaPipeline.from_pretrained(repository_path, text_encoder=None, tokenizer=None, torch_dtype=torch.float16,
                                                 transformer=transformer).to(device=transformer.device)
     dataset = FilesDataset(Path(output_folder).joinpath('validation_embeddings'), extensions=['.emb'])
@@ -473,21 +473,27 @@ def validation_and_save(repository_path : str, transformer : PixArtTransformer2D
         index = index + 1
 
     del pipe
+
+    # optionnaly push the pipeline to the hub
+    if push_to_hub == True:
+        pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=transformer, torch_dtype=torch.float16)
+        pipe.push_to_hub(repository_path)
+    
     flush()
     
     # save the transformer
     transformer.save_pretrained(Path(logging_path).joinpath(f'{global_step}'))
     
 def train(output_folder : str, num_epochs : int, batch_size : int, repository_path : str, learning_rate : float, steps_per_validation : int, epochs_per_validation : int,
-          blank_transformer : bool, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str, validation_prompts : list[str]):
+          blank_transformer : bool, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str, validation_prompts : list[str], push_transformer_to_hub : bool):
     dataset = EmbeddingsFeaturesDataset(output_folder, hf_dataset, embeddings_column, vae_features_column)
     sampler = BucketSampler(dataset.files, batch_size, hf_dataset, embeddings_column, vae_features_column)
     dataloader = DataLoader(dataset, batch_sampler=sampler)
 
     # load the transformer
-    transformer = Transformer2DModel.from_pretrained(repository_path, subfolder='transformer').to(device='cuda')
+    transformer = PixArtTransformer2DModel.from_pretrained(repository_path, subfolder='transformer').to(device='cuda')
     if blank_transformer == True:
-        transformer = Transformer2DModel.from_config(transformer.config)
+        transformer = PixArtTransformer2DModel.from_config(transformer.config)
     transformer.gradient_checkpointing = True
     transformer.training = True
     scheduler = DDPMScheduler.from_pretrained(repository_path, subfolder='scheduler')
@@ -559,7 +565,7 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
     
     # final save
     if accelerator.is_main_process:
-        validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts)
+        validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts, push_transformer_to_hub)
             
 
 if __name__ == '__main__':
@@ -594,6 +600,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_caption_column', required=False, type=str, default=None)
     parser.add_argument('--dataset_split', required=False, type=str, default='train')
     parser.add_argument('--dataset_output_repo', required=False, type=str, default=None)
+    parser.add_argument('--push_transformer_to_hub', required=False, type=str, default=False)
 
     args = parser.parse_args()
 
@@ -606,6 +613,7 @@ if __name__ == '__main__':
     dataset_caption_column = args.dataset_caption_column
     dataset_split = args.dataset_split
     dataset_output_repo = args.dataset_output_repo
+    push_transformer_to_hub = args.push_transformer_to_hub
 
     captions_folder = args.captions_folder
     if captions_folder == None:
@@ -679,4 +687,4 @@ if __name__ == '__main__':
 
     train(output_folder, num_epochs, batch_size, repository_path, learning_rate, steps_per_validation, epochs_per_validation, blank_transformer, dataset,
           ['t5_prompt_embeds', 't5_prompt_attention_mask', 't5_negative_embeds', 't5_negative_prompt_attention_mask'],
-          f'vae_{checkpoint_resolution}px', validation_prompts)
+          f'vae_{checkpoint_resolution}px', validation_prompts, push_transformer_to_hub)
