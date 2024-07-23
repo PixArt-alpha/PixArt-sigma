@@ -375,6 +375,9 @@ class EmbeddingsFeaturesDataset(Dataset):
 
 class BucketSampler(BatchSampler):
     def __init__(self, files, max_batch_size, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str):
+        # initialize the same seed for every process
+        random.seed(0)
+        
         self.hf_dataset = hf_dataset
         self.embeddings_column = embeddings_column
         self.vae_features_column = vae_features_column
