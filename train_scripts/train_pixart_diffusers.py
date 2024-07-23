@@ -671,7 +671,7 @@ if __name__ == '__main__':
 
     
     if dataset_path != None:
-        dataset = load_dataset(dataset_path, split='train')
+        dataset = load_dataset(dataset_path, split=dataset_split)
     if args.skip_t5_features == False:
         if dataset == None:
             extract_t5_embeddings(repository_path, captions_folder, output_folder)
@@ -704,7 +704,7 @@ if __name__ == '__main__':
         pass
 
     if dataset_output_repo != None:
-        dataset = load_dataset(dataset_output_repo, split='train')
+        dataset = load_dataset(dataset_output_repo, split=dataset_split)
     elif args.skip_t5_features == False or args.skip_vae_features == False:
         dataset_path = Path(output_folder).joinpath('dataset.arrow')
         if os.path.exists(dataset_path):
