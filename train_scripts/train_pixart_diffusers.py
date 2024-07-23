@@ -661,7 +661,6 @@ if __name__ == '__main__':
     try:
         if dist.is_available() and dist.is_initialized():
             dist.barrier()
-            dist.destroy_process_group()
     except:
         pass
 
