@@ -136,7 +136,7 @@ def extract_t5_embeddings(repository_path : str, captions_folder : str, output_f
     del pipe
     flush()
 
-def process_shard(lock, process_index, shard : datasets.Dataset, repository_path, dataset_caption_column, queue : mp.Queue):
+def process_t5_shard(lock, process_index, shard : datasets.Dataset, repository_path, dataset_caption_column, queue : mp.Queue):
     local_rank = int(os.getenv('LOCAL_RANK', 0))
     device = torch.device(f'cuda:{local_rank}')
     torch.cuda.set_device(device)
@@ -189,7 +189,7 @@ def extract_t5_embeddings_from_dataset(repository_path, dataset : datasets.Datas
 
     processes = []
     for process_index in range(num_processes):
-        p = mp.Process(target=process_shard, args=(lock, process_index, shards[process_index], repository_path, dataset_caption_column, queue))
+        p = mp.Process(target=process_t5_shard, args=(lock, process_index, shards[process_index], repository_path, dataset_caption_column, queue))
         p.start()
         processes.append(p)
     
@@ -272,20 +272,30 @@ def extract_vae_features(repository_path : str, images_folder : str, output_fold
         latent_filepath = vae_features_folder.joinpath(Path(filename[0]).stem + '.lat')
         torch.save(latent, latent_filepath)
 
-def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_column, dataset_images_column, output_folder):
-    def add_vae_column(batch, rank):
-        local_rank = int(os.getenv('LOCAL_RANK', 0))
-        device = torch.device(f'cuda:{local_rank}')
-        torch.cuda.set_device(device)
+def process_vae_shard(lock, process_index, repository_path, shard, dataset_url_column, dataset_images_column, output_folder, queue : mp.Queue):
+    local_rank = int(os.getenv('LOCAL_RANK', 0))
+    device = torch.device(f'cuda:{local_rank}')
+    torch.cuda.set_device(device)
 
-        pipe = PixArtSigmaPipeline.from_pretrained(repository_path, text_encoder=None, tokenizer=None, torch_dtype=torch.float16
-                                               ).to(device=device)
+    with lock:
+        pipe = PixArtSigmaPipeline.from_pretrained(repository_path, text_encoder=None, torch_dtype=torch.float16)
+        pipe = pipe.to(device=device)
         image_processor = pipe.image_processor
 
         interpolation_scale = pipe.transformer.config.interpolation_scale
         checkpoint_resolution = 512 * interpolation_scale
 
         del pipe.transformer
+        del pipe
+        flush()
+    
+    def add_vae_column(batch):
+        local_rank = int(os.getenv('LOCAL_RANK', 0))
+        device = torch.device(f'cuda:{local_rank}')
+        torch.cuda.set_device(device)
+
+        pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=None, text_encoder=None, tokenizer=None, torch_dtype=torch.float16
+                                               ).to(device=device)
         vae = pipe.vae
     
         iterator = None
@@ -333,8 +343,32 @@ def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_colu
         batch[f'vae_{checkpoint_resolution}px'] = latents
         batch['ratio'] = ratios
         return batch
-    dataset = dataset.map(add_vae_column, batched=True, with_rank=True, batch_size=500, num_proc=torch.cuda.device_count())
-    return dataset
+    shard = shard.map(add_vae_column, batched=True)
+    queue.put(shard)
+
+def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_column, dataset_images_column, output_folder):
+    lock = mp.Lock()
+    queue = mp.Queue()
+
+    # split the dataset into shards
+    num_processes = torch.cuda.device_count()
+    shards = [dataset.shard(num_processes, index=i) for i in range(num_processes)]
+
+    processes = []
+    for process_index in range(num_processes):
+        p = mp.Process(target=process_vae_shard, args=(lock, process_index, repository_path, shards[process_index], dataset_url_column, dataset_images_column, output_folder, queue))
+        p.start()
+        processes.append(p)
+    
+    results = []
+    for p in processes:
+        results.append(queue.get())
+
+    for p in processes:
+        p.join()
+
+    dataset = datasets.concatenate_datasets(results)
+    return dataset    
     
     
 class EmbeddingsFeaturesDataset(Dataset):
