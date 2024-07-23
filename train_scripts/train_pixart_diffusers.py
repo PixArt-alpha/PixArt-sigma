@@ -582,7 +582,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--repository_path', required=True, type=str)
-    parser.add_argument('--images_folder', required=False, type=str)
+    parser.add_argument('--images_folder', required=False, type=str, default=None)
     parser.add_argument('--captions_folder', required=False, type=str, default=None)
     parser.add_argument('-l', '--validation_prompts', nargs='+', required=False, default=None)
     parser.add_argument('--output_folder', required=True, type=str)
@@ -600,7 +600,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_caption_column', required=False, type=str, default=None)
     parser.add_argument('--dataset_split', required=False, type=str, default='train')
     parser.add_argument('--dataset_output_repo', required=False, type=str, default=None)
-    parser.add_argument('--push_transformer_to_hub', required=False, type=str, default=False)
+    parser.add_argument('--push_transformer_to_hub', action=argparse.BooleanOptionalAction, default=False)
 
     args = parser.parse_args()
 
