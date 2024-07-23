@@ -455,7 +455,16 @@ class BucketSampler(BatchSampler):
                 if not ratio in self.buckets.keys():
                     self.buckets[ratio] = []
                 self.buckets[ratio].append(i)
-                self.num_images = self.num_images + 1
+
+            print(f'There are {len(self.buckets.keys())} buckets')
+            self.num_images = self.num_images + 1
+
+            for key, values in self.buckets.items():
+                print(f'bucket:{key}')
+                for value in values:
+                    item = self.hf_dataset[value]
+                    latent = item[self.vae_features_column]
+                    print(f'latent.shape={latent.shape}')
 
     def __iter__(self):
         batch = []
@@ -472,12 +481,8 @@ class BucketSampler(BatchSampler):
                     batch = []
             if batch != []:
                 # create a batch with randomly sampled indices
-                for idx in batch:
-                    value_copy.remove(idx)
-
-                while len(batch) != self.max_batch_size and value_copy != []:
+                while len(batch) != self.max_batch_size:
                     idx = random.choice(value_copy)
-                    value_copy.remove(idx)
                     batch.append(idx)
                 yield batch
                 batch = []
@@ -554,10 +559,10 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
     # prepare multi-gpu training
     accelerator = Accelerator()
     transformer = transformer.to(accelerator.device)
-    #dataloader, transformer, optimizer = accelerator.prepare(dataloader, transformer, optimizer)
-    dataloader = accelerator.prepare(dataloader)
-    transformer = accelerator.prepare(transformer)
-    optimizer = accelerator.prepare(optimizer)
+    dataloader, transformer, optimizer = accelerator.prepare(dataloader, transformer, optimizer)
+    #dataloader = accelerator.prepare(dataloader)
+    #transformer = accelerator.prepare(transformer)
+    #optimizer = accelerator.prepare(optimizer)
     added_cond_kwargs = {"resolution": resolution, "aspect_ratio": None}
 
     global_step = 0
@@ -703,18 +708,24 @@ if __name__ == '__main__':
             dataset_path = Path(output_folder).joinpath('dataset.arrow')
             dataset.save_to_disk(dataset_path)
 
+    print(f'before barrier, rank={rank}')
     try:
         if dist.is_available() and dist.is_initialized():
             dist.barrier()
     except:
         pass
+    print(f'after barrier, rank={rank}')
 
-    if dataset_output_repo != None:
-        dataset = load_dataset(dataset_output_repo, split=dataset_split)
-    elif args.skip_t5_features == False or args.skip_vae_features == False:
-        dataset_path = Path(output_folder).joinpath('dataset.arrow')
-        if os.path.exists(dataset_path):
-            dataset = datasets.Dataset.load_from_disk(dataset_path)
+    if rank != 0:
+        print(f'loading dataset, rank={rank}')
+        if dataset_output_repo != None:
+            dataset = load_dataset(dataset_output_repo, split=dataset_split)
+        elif args.skip_t5_features == False or args.skip_vae_features == False:
+            dataset_path = Path(output_folder).joinpath('dataset.arrow')
+            if os.path.exists(dataset_path):
+                dataset = datasets.Dataset.load_from_disk(dataset_path)
+        else:
+            dataset = load_dataset(dataset_path, split=dataset_split)
 
     batch_size = args.batch_size
     num_epochs = args.num_epochs
