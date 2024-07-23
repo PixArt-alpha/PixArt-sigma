@@ -575,6 +575,7 @@ if __name__ == '__main__':
             if os.name == 'nt':
                 torch.distributed.init_process_group(backend='gloo')
             else:
+                print('torch.distributed.init_process_group(backend=''nccl'')')
                 torch.distributed.init_process_group(backend='nccl')
     except:
         pass
