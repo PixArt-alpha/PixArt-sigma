@@ -137,15 +137,19 @@ def extract_t5_embeddings(repository_path : str, captions_folder : str, output_f
     flush()
 
 def process_t5_shard(lock, process_index, shard : datasets.Dataset, repository_path, dataset_caption_column, queue : mp.Queue):
-    local_rank = int(os.getenv('LOCAL_RANK', 0))
-    device = torch.device(f'cuda:{local_rank}')
-    torch.cuda.set_device(device)
+    device = f"cuda:{(process_index or 0) % torch.cuda.device_count()}"
+    print(f'process_t5_shard(), device={device}')
 
-    with lock:
+    #with lock:
+        #pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=None, torch_dtype=torch.float16)
+        #pipe = pipe.to(device=device)
+        #print(f'process_t5_shard(), pipe loaded on device {device}')
+
+    def add_t5_columns(batch, dataset_caption_column):
         pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=None, torch_dtype=torch.float16)
         pipe = pipe.to(device=device)
-
-    def add_t5_columns(batch, pipe, dataset_caption_column):
+        print(f'process_t5_shard(), pipe loaded on device {device}')
+    
         l_prompt_embeds = []
         l_prompt_attention_mask = []
         l_negative_embeds = []
@@ -174,10 +178,9 @@ def process_t5_shard(lock, process_index, shard : datasets.Dataset, repository_p
         batch['t5_negative_prompt_attention_mask'] = l_negative_prompt_attention_mask
         return batch
     
-    shard = shard.map(add_t5_columns, batched=True, fn_kwargs={'pipe' : pipe, 'dataset_caption_column' : dataset_caption_column})
-    del pipe
-    flush()
+    shard = shard.map(add_t5_columns, batched=True, fn_kwargs={'dataset_caption_column' : dataset_caption_column})
     queue.put(shard)
+    print(f'process_t5_shard(), shard put into queue on {device}')
 
 def extract_t5_embeddings_from_dataset(repository_path, dataset : datasets.Dataset, dataset_caption_column, output_folder):
     lock = mp.Lock()
@@ -194,11 +197,15 @@ def extract_t5_embeddings_from_dataset(repository_path, dataset : datasets.Datas
         processes.append(p)
     
     results = []
+    
     for p in processes:
         results.append(queue.get())
 
+    print('extract_t5_embeddings_from_dataset(), joining processes')
     for p in processes:
         p.join()
+    queue.close()
+    queue.join_thread()
 
     dataset = datasets.concatenate_datasets(results)
     return dataset     
@@ -273,9 +280,7 @@ def extract_vae_features(repository_path : str, images_folder : str, output_fold
         torch.save(latent, latent_filepath)
 
 def process_vae_shard(lock, process_index, repository_path, shard, dataset_url_column, dataset_images_column, output_folder, queue : mp.Queue):
-    local_rank = int(os.getenv('LOCAL_RANK', 0))
-    device = torch.device(f'cuda:{local_rank}')
-    torch.cuda.set_device(device)
+    device = f"cuda:{(process_index or 0) % torch.cuda.device_count()}"
 
     with lock:
         pipe = PixArtSigmaPipeline.from_pretrained(repository_path, text_encoder=None, torch_dtype=torch.float16)
@@ -290,10 +295,6 @@ def process_vae_shard(lock, process_index, repository_path, shard, dataset_url_c
         flush()
     
     def add_vae_column(batch):
-        local_rank = int(os.getenv('LOCAL_RANK', 0))
-        device = torch.device(f'cuda:{local_rank}')
-        torch.cuda.set_device(device)
-
         pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=None, text_encoder=None, tokenizer=None, torch_dtype=torch.float16
                                                ).to(device=device)
         vae = pipe.vae
@@ -312,6 +313,8 @@ def process_vae_shard(lock, process_index, repository_path, shard, dataset_url_c
                 image = Image.open(BytesIO(response.content))
             else:
                 image = elem
+            # force rgb format
+            image = image.convert('RGB')
 
             image = image_processor.pil_to_numpy(image)
             image = torch.tensor(image, device=device, dtype=torch.float16)
@@ -362,10 +365,12 @@ def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_colu
     
     results = []
     for p in processes:
-        results.append(queue.get())
-
-    for p in processes:
         p.join()
+    
+    for p in processes:
+        results.append(queue.get())
+    queue.close()
+    queue.join_thread()
 
     dataset = datasets.concatenate_datasets(results)
     return dataset    
@@ -669,33 +674,34 @@ if __name__ == '__main__':
     else:
         rank = 0  # Default to rank 0 if not in a distributed environment
 
-    
-    if dataset_path != None:
-        dataset = load_dataset(dataset_path, split=dataset_split)
-    if args.skip_t5_features == False:
-        if dataset == None:
-            extract_t5_embeddings(repository_path, captions_folder, output_folder)
-        elif rank == 0:
-            dataset = extract_t5_embeddings_from_dataset(repository_path, dataset, dataset_caption_column, output_folder)
-    
-    if args.skip_vae_features == False:
-        if dataset == None:
-            extract_vae_features(repository_path, images_folder, output_folder)
-        elif rank == 0:
-            dataset = extract_vae_features_from_dataset(repository_path, dataset, dataset_url_column, dataset_image_column, output_folder)
+    print(f'rank={rank}')
+    if rank == 0:
+        if dataset_path != None:
+            dataset = load_dataset(dataset_path, split=dataset_split)
+        if args.skip_t5_features == False:
+            if dataset == None:
+                extract_t5_embeddings(repository_path, captions_folder, output_folder)
+            else:
+                dataset = extract_t5_embeddings_from_dataset(repository_path, dataset, dataset_caption_column, output_folder)
+        
+        if args.skip_vae_features == False:
+            if dataset == None:
+                extract_vae_features(repository_path, images_folder, output_folder)
+            else:
+                dataset = extract_vae_features_from_dataset(repository_path, dataset, dataset_url_column, dataset_image_column, output_folder)
 
-    # optionnaly push the dataset to the hub with the embeddings and latents calculated
-    if dataset_output_repo != None:
-        # we need to read the embeddings and latents from the disk and add the columns to the dataset
-        dataset.push_to_hub(dataset_output_repo, private=False)
+        # optionnaly push the dataset to the hub with the embeddings and latents calculated
+        if dataset_output_repo != None:
+            # we need to read the embeddings and latents from the disk and add the columns to the dataset
+            dataset.push_to_hub(dataset_output_repo, private=False)
 
-    if validation_prompts != None and rank == 0:
-        extract_t5_validation_embeddings(repository_path, validation_prompts, output_folder)
-    
-    # save the dataset to the disk so other processes can use it
-    if args.skip_t5_features == False and args.skip_vae_features == False and dataset != None and rank == 0 and dataset_output_repo == None:
-        dataset_path = Path(output_folder).joinpath('dataset.arrow')
-        dataset.save_to_disk(dataset_path)
+        if validation_prompts != None:
+            extract_t5_validation_embeddings(repository_path, validation_prompts, output_folder)
+        
+        # save the dataset to the disk so other processes can use it
+        if args.skip_t5_features == False and args.skip_vae_features == False and dataset != None and dataset_output_repo == None:
+            dataset_path = Path(output_folder).joinpath('dataset.arrow')
+            dataset.save_to_disk(dataset_path)
 
     try:
         if dist.is_available() and dist.is_initialized():
