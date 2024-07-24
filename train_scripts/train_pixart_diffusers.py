@@ -178,7 +178,7 @@ def process_t5_shard(lock, process_index, shard : datasets.Dataset, repository_p
         batch['t5_negative_prompt_attention_mask'] = l_negative_prompt_attention_mask
         return batch
     
-    shard = shard.map(add_t5_columns, batched=True, fn_kwargs={'dataset_caption_column' : dataset_caption_column})
+    shard = shard.map(add_t5_columns, batched=True, batch_size=500, fn_kwargs={'dataset_caption_column' : dataset_caption_column})
     queue.put(shard)
     print(f'process_t5_shard(), shard put into queue on {device}')
 
@@ -346,7 +346,7 @@ def process_vae_shard(lock, process_index, repository_path, shard, dataset_url_c
         batch[f'vae_{checkpoint_resolution}px'] = latents
         batch['ratio'] = ratios
         return batch
-    shard = shard.map(add_vae_column, batched=True)
+    shard = shard.map(add_vae_column, batched=True, batch_size=500)
     queue.put(shard)
 
 def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_column, dataset_images_column, output_folder):
