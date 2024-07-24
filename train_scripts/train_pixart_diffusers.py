@@ -31,6 +31,7 @@ import gc
 from datetime import datetime
 import argparse
 import requests
+from datetime import timedelta
 from torch.multiprocessing import set_start_method
 
 import sys
@@ -624,7 +625,8 @@ if __name__ == '__main__':
                 torch.distributed.init_process_group(backend='gloo')
             else:
                 print('torch.distributed.init_process_group(backend=''nccl'')')
-                torch.distributed.init_process_group(backend='nccl')
+                # set to an extremely large timeout so it's not possible to get past the barrier
+                torch.distributed.init_process_group(backend='nccl', timeout=timedelta(days=30))
     except:
         pass
     set_start_method("spawn")
