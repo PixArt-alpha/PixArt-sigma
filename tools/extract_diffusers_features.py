@@ -107,80 +107,6 @@ def extract_t5_embeddings(repository_path : str, captions_folder : str, output_f
     del pipe
     flush()
 
-def process_t5_shard(lock, process_index, shard : datasets.Dataset, repository_path, dataset_caption_column, queue : mp.Queue):
-    device = f"cuda:{(process_index or 0) % torch.cuda.device_count()}"
-    print(f'process_t5_shard(), device={device}')
-
-    #with lock:
-        #pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=None, torch_dtype=torch.float16)
-        #pipe = pipe.to(device=device)
-        #print(f'process_t5_shard(), pipe loaded on device {device}')
-
-    def add_t5_columns(batch, dataset_caption_column):
-        pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=None, torch_dtype=torch.float16)
-        pipe = pipe.to(device=device)
-        print(f'process_t5_shard(), pipe loaded on device {device}')
-    
-        l_prompt_embeds = []
-        l_prompt_attention_mask = []
-        l_negative_embeds = []
-        l_negative_prompt_attention_mask = []
-        for elem in tqdm.tqdm(batch[dataset_caption_column]):
-            with torch.no_grad():
-                prompt_embeds, prompt_attention_mask, negative_embeds, negative_prompt_attention_mask = pipe.encode_prompt(elem)
-            prompt_embeds = prompt_embeds.to('cpu')
-            prompt_attention_mask = prompt_attention_mask.to('cpu')
-            negative_embeds = negative_embeds.to('cpu')
-            negative_prompt_attention_mask = negative_prompt_attention_mask.to('cpu')
-
-            l_prompt_embeds.append(prompt_embeds)
-            l_prompt_attention_mask.append(prompt_attention_mask)
-            l_negative_embeds.append(negative_embeds)
-            l_negative_prompt_attention_mask.append(negative_prompt_attention_mask)
-            del prompt_embeds
-            del prompt_attention_mask
-            del negative_embeds
-            del negative_prompt_attention_mask
-            flush()
-        
-        batch['t5_prompt_embeds'] = l_prompt_embeds
-        batch['t5_prompt_attention_mask'] = l_prompt_attention_mask
-        batch['t5_negative_embeds'] = l_negative_embeds
-        batch['t5_negative_prompt_attention_mask'] = l_negative_prompt_attention_mask
-        return batch
-    
-    shard = shard.map(add_t5_columns, batched=True, batch_size=500, fn_kwargs={'dataset_caption_column' : dataset_caption_column})
-    queue.put(shard)
-    print(f'process_t5_shard(), shard put into queue on {device}')
-
-def extract_t5_embeddings_from_dataset_old(repository_path, dataset : datasets.Dataset, dataset_caption_column, output_folder):
-    lock = mp.Lock()
-    queue = mp.Queue()
-
-    # split the dataset into shards
-    num_processes = torch.cuda.device_count()
-    shards = [dataset.shard(num_processes, index=i) for i in range(num_processes)]
-
-    processes = []
-    for process_index in range(num_processes):
-        p = mp.Process(target=process_t5_shard, args=(lock, process_index, shards[process_index], repository_path, dataset_caption_column, queue))
-        p.start()
-        processes.append(p)
-    
-    results = []
-    
-    for p in processes:
-        results.append(queue.get())
-
-    print('extract_t5_embeddings_from_dataset(), joining processes')
-    for p in processes:
-        p.join()
-    queue.close()
-    queue.join_thread()
-
-    dataset = datasets.concatenate_datasets(results)
-    return dataset
-
 def extract_t5_embeddings_from_dataset(repository_path, dataset : datasets.Dataset, dataset_caption_column : str, t5_num_processes : int):
     def add_t5_columns(batch, rank, dataset_caption_column):
         device = f"cuda:{(rank or 0) % torch.cuda.device_count()}"
@@ -290,118 +216,17 @@ def extract_vae_features(repository_path : str, images_folder : str, output_fold
         latent_filepath = vae_features_folder.joinpath(Path(filename[0]).stem + '.lat')
         torch.save(latent, latent_filepath)
 
-def process_vae_shard(lock, process_index, repository_path, shard, dataset_url_column, dataset_images_column, output_folder, queue : mp.Queue):
-    device = f"cuda:{(process_index or 0) % torch.cuda.device_count()}"
-
-    with lock:
-        pipe = PixArtSigmaPipeline.from_pretrained(repository_path, text_encoder=None, torch_dtype=torch.float16)
-        pipe = pipe.to(device=device)
+def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_column, dataset_images_column, num_vae_processes_per_gpu):
+    def add_vae_column(batch, rank):
+        device = f"cuda:{(rank or 0) % torch.cuda.device_count()}"
+        print(f'add_vae_column(), device={device}')
+        pipe = PixArtSigmaPipeline.from_pretrained(repository_path, scheduler=None, text_encoder=None, tokenizer=None, torch_dtype=torch.float16)
         image_processor = pipe.image_processor
+        vae = pipe.vae.to(device)
 
         interpolation_scale = pipe.transformer.config.interpolation_scale
         checkpoint_resolution = 512 * interpolation_scale
-
         del pipe.transformer
-        del pipe
-        flush()
-    
-    def add_vae_column(batch):
-        pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=None, text_encoder=None, tokenizer=None, torch_dtype=torch.float16
-                                               ).to(device=device)
-        vae = pipe.vae
-    
-        iterator = None
-        if dataset_url_column != None:
-            iterator = batch[dataset_url_column]
-        else:
-            iterator = batch[dataset_images_column]
-
-        latents = []
-        ratios = []
-        for elem in tqdm.tqdm(iterator):
-            if dataset_url_column != None:
-                response = requests.get(elem)
-                image = Image.open(BytesIO(response.content))
-            else:
-                image = elem
-            # force rgb format
-            image = image.convert('RGB')
-
-            image = image_processor.pil_to_numpy(image)
-            image = torch.tensor(image, device=device, dtype=torch.float16)
-            image = torch.moveaxis(image, -1, 1)
-
-            # find the closest ratio
-            ratio = image.shape[2] / image.shape[3]
-            resolution = find_closest_resolution(ratio, checkpoint_resolution)
-
-            image_width = int(resolution[1])
-            image_height = int(resolution[0])
-
-            # use the actual ratio for the dataset
-            ratio = float(image_height) / float(image_width)
-            ratios.append(ratio)
-
-            resize_transform = Resize((image_height, image_width))
-            image = resize_transform(image)
-
-            with torch.no_grad():
-                image = image_processor.preprocess(image)
-                latent = vae.encode(image).latent_dist.sample()
-                latent = latent * vae.config.scaling_factor
-                del image
-                flush()
-            latent = latent.to('cpu')
-            latents.append(latent)
-
-        batch[f'vae_{checkpoint_resolution}px'] = latents
-        batch['ratio'] = ratios
-        return batch
-    shard = shard.map(add_vae_column, batched=True, batch_size=500)
-    queue.put(shard)
-
-def extract_vae_features_from_dataset_old(repository_path, dataset, dataset_url_column, dataset_images_column, output_folder):
-    lock = mp.Lock()
-    queue = mp.Queue()
-
-    # split the dataset into shards
-    num_processes = torch.cuda.device_count()
-    shards = [dataset.shard(num_processes, index=i) for i in range(num_processes)]
-
-    processes = []
-    for process_index in range(num_processes):
-        p = mp.Process(target=process_vae_shard, args=(lock, process_index, repository_path, shards[process_index], dataset_url_column, dataset_images_column, output_folder, queue))
-        p.start()
-        processes.append(p)
-    
-    results = []
-    for p in processes:
-        p.join()
-    
-    for p in processes:
-        results.append(queue.get())
-    queue.close()
-    queue.join_thread()
-
-    dataset = datasets.concatenate_datasets(results)
-    return dataset
-
-def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_column, dataset_images_column, num_vae_processes_per_gpu):
-    pipe = PixArtSigmaPipeline.from_pretrained(repository_path, text_encoder=None, torch_dtype=torch.float16)
-    image_processor = pipe.image_processor
-
-    interpolation_scale = pipe.transformer.config.interpolation_scale
-    checkpoint_resolution = 512 * interpolation_scale
-
-    del pipe.transformer
-    del pipe
-    flush()
-    
-    def add_vae_column(batch, rank):
-        device = f"cuda:{(rank or 0) % torch.cuda.device_count()}"
-        pipe = PixArtSigmaPipeline.from_pretrained(repository_path, transformer=None, text_encoder=None, tokenizer=None, torch_dtype=torch.float16
-                                               ).to(device=device)
-        vae = pipe.vae
     
         iterator = None
         if dataset_url_column != None:
@@ -454,19 +279,6 @@ def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_colu
     return dataset
 
 if __name__ == '__main__':
-    # if on windows, try to set to gloo for distributed training
-    try:
-        if dist.is_available() and not dist.is_initialized():
-            if os.name == 'nt':
-                torch.distributed.init_process_group(backend='gloo')
-            else:
-                print('torch.distributed.init_process_group(backend=''nccl'')')
-                # set to an extremely large timeout so it's not possible to get past the barrier
-                torch.distributed.init_process_group(backend='nccl', timeout=timedelta(days=30))
-    except:
-        pass
-    set_start_method("spawn")
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--repository_path', required=True, type=str)
     parser.add_argument('--images_folder', required=False, type=str, default=None)
@@ -503,6 +315,7 @@ if __name__ == '__main__':
         captions_folder = images_folder
 
     output_folder = args.output_folder
+    Path(output_folder).mkdir(parents=True, exist_ok=True)
 
     dataset = None
     vae_column_name = None
@@ -532,7 +345,11 @@ if __name__ == '__main__':
         # optionnaly push the dataset to the hub with the embeddings and latents calculated
         if dataset_output_repo != None:
             # we need to read the embeddings and latents from the disk and add the columns to the dataset
-            dataset.push_to_hub(dataset_output_repo, private=False)
+            try:
+                dataset.push_to_hub(dataset_output_repo, private=False)
+            except Exception as e:
+                print(e)
+        dataset.save_to_disk(Path(output_folder).joinpath('dataset'))
 
         if validation_prompts != None:
             extract_t5_validation_embeddings(repository_path, validation_prompts, output_folder)
