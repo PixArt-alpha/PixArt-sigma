@@ -114,9 +114,23 @@ class EmbeddingsFeaturesDataset(Dataset):
             return embeddings, features
         else:
             item = self.hf_dataset[idx]
-            embeddings = tuple([item[self.embeddings_column[index]] for index in range(4)])
+
+            # we need to expand the embeddings back to 300 tokens
+            # and create a mask to keep the valid tokens
+            #  [1, 19, 4096]           [1, 300, 4096]
+            embeddings = item['t5_prompt_embeds']
+
+            # create the mask
+            mask_length = embeddings.shape[1]
+            embeddings_mask = torch.zeros((1, 300))
+            embeddings_mask[:, :mask_length] = 1
+
+            # right pad the embeddings
+            embeddings_target = torch.zeros((1, 300, 4096))
+            embeddings_target[:, :mask_length, :] = embeddings
+
             features = item[self.vae_features_column]
-            return embeddings, features
+            return embeddings, embeddings_mask, features
 
 class BucketSampler(BatchSampler):
     def __init__(self, files, max_batch_size, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str):
@@ -293,18 +307,14 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
         if epoch % epochs_per_validation == 0 and accelerator.is_main_process:
             validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts)
         
-        for batch_embeds, batch_features in tqdm.tqdm(dataloader, desc='Batch:'):
+        for embeddings, embeddings_mask, features in tqdm.tqdm(dataloader, desc='Batch:'):
             if global_step % steps_per_validation == 0 and accelerator.is_main_process:
                 validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts)
 
             with torch.no_grad():
-                prompt_embeds, prompt_attention_mask, negative_prompt_embeds, negative_prompt_attention_mask = batch_embeds
-                
                 # strip the second dimension
-                prompt_embeds = torch.squeeze(prompt_embeds, dim=1).to(dtype=dtype)
-                prompt_attention_mask = torch.squeeze(prompt_attention_mask, dim=1).to(dtype=dtype)
-                negative_prompt_embeds = torch.squeeze(negative_prompt_embeds, dim=1).to(dtype=dtype)
-                negative_prompt_attention_mask = torch.squeeze(negative_prompt_attention_mask, dim=1).to(dtype=dtype)
+                embeddings = torch.squeeze(embeddings, dim=1).to(dtype=dtype)
+                embeddings_mask = torch.squeeze(embeddings_mask, dim=1).to(dtype=dtype)
                 batch_features = torch.squeeze(batch_features, dim=1).to(dtype=dtype)
                 batch_size = batch_features.shape[0]
     
@@ -318,8 +328,8 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
 
             with accelerator.accumulate(transformer):
                 noise_pred = accelerator.unwrap_model(transformer)(latent_model_input,
-                                        encoder_hidden_states=prompt_embeds,
-                                        encoder_attention_mask=prompt_attention_mask,
+                                        encoder_hidden_states=embeddings,
+                                        encoder_attention_mask=embeddings_mask,
                                         timestep=timesteps,
                                         added_cond_kwargs=added_cond_kwargs).sample.chunk(2, 1)[0]
                 loss = loss_fn(noise_pred, noise).to(dtype=dtype)

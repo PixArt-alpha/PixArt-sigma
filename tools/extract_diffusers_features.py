@@ -116,31 +116,21 @@ def extract_t5_embeddings_from_dataset(repository_path, dataset : datasets.Datas
         print(f'process_t5_shard(), pipe loaded on device {device}')
     
         l_prompt_embeds = []
-        l_prompt_attention_mask = []
-        l_negative_embeds = []
-        l_negative_prompt_attention_mask = []
         for elem in tqdm.tqdm(batch[dataset_caption_column]):
             with torch.no_grad():
                 prompt_embeds, prompt_attention_mask, negative_embeds, negative_prompt_attention_mask = pipe.encode_prompt(elem)
             prompt_embeds = prompt_embeds.to('cpu')
-            prompt_attention_mask = prompt_attention_mask.to('cpu')
-            negative_embeds = negative_embeds.to('cpu')
-            negative_prompt_attention_mask = negative_prompt_attention_mask.to('cpu')
+            prompt_attention_mask = prompt_attention_mask.to(device='cpu')
+            
+            # optimization suggested by ptx0
+            non_zeros = torch.nonzero(prompt_attention_mask)
+            prompt_embeds = prompt_embeds[:, :non_zeros.shape[0], :]
 
             l_prompt_embeds.append(prompt_embeds)
-            l_prompt_attention_mask.append(prompt_attention_mask)
-            l_negative_embeds.append(negative_embeds)
-            l_negative_prompt_attention_mask.append(negative_prompt_attention_mask)
             del prompt_embeds
-            del prompt_attention_mask
-            del negative_embeds
-            del negative_prompt_attention_mask
             flush()
         
         batch['t5_prompt_embeds'] = l_prompt_embeds
-        batch['t5_prompt_attention_mask'] = l_prompt_attention_mask
-        batch['t5_negative_embeds'] = l_negative_embeds
-        batch['t5_negative_prompt_attention_mask'] = l_negative_prompt_attention_mask
         return batch
     
     dataset = dataset.map(add_t5_columns, batched=True, with_rank=True, num_proc=torch.cuda.device_count() * t5_num_processes, fn_kwargs={'dataset_caption_column' : dataset_caption_column})
