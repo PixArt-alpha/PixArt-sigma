@@ -273,7 +273,12 @@ def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_colu
     dataset = dataset.map(add_vae_column, batched=True, with_rank=True, num_proc=num_vae_processes_per_gpu * torch.cuda.device_count())
 
     # filter out the none entries
-    dataset = dataset.filter(lambda example: example["ratio"] != None)
+    def filter_func(batch):
+        ratios = batch['ratio']
+        valids = [ratio != None for ratio in ratios]
+        return valids
+        
+    dataset = dataset.filter(filter_func, batched=True, num_proc=num_vae_processes_per_gpu)
     return dataset
 
 if __name__ == '__main__':
