@@ -352,7 +352,6 @@ if __name__ == '__main__':
                 dataset.push_to_hub(dataset_output_repo, private=False)
             except Exception as e:
                 print(e)
-        dataset.save_to_disk(Path(output_folder).joinpath('dataset'))
 
         if validation_prompts != None:
             extract_t5_validation_embeddings(repository_path, validation_prompts, output_folder)

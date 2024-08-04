@@ -130,7 +130,7 @@ class EmbeddingsFeaturesDataset(Dataset):
             embeddings_target[:, :mask_length, :] = embeddings
 
             features = item[self.vae_features_column]
-            return embeddings, embeddings_mask, features
+            return embeddings_target, embeddings_mask, features
 
 class BucketSampler(BatchSampler):
     def __init__(self, files, max_batch_size, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str):
@@ -171,16 +171,9 @@ class BucketSampler(BatchSampler):
                 if not ratio in self.buckets.keys():
                     self.buckets[ratio] = []
                 self.buckets[ratio].append(i)
+                self.num_images = self.num_images + 1
 
             print(f'There are {len(self.buckets.keys())} buckets')
-            self.num_images = self.num_images + 1
-
-            for key, values in self.buckets.items():
-                print(f'bucket:{key}')
-                for value in values:
-                    item = self.hf_dataset[value]
-                    latent = item[self.vae_features_column]
-                    print(f'latent.shape={latent.shape}')
 
     def __iter__(self):
         batch = []
@@ -229,7 +222,7 @@ class FilesDataset(Dataset):
         return test
     
 def validation_and_save(repository_path : str, transformer : PixArtTransformer2DModel, output_folder : str, logger : SummaryWriter,
-                        global_step : int, logging_path, validation_prompts : list[str], push_to_hub = False):
+                        global_step : int, logging_path, push_to_hub = False):
     pipe = PixArtSigmaPipeline.from_pretrained(repository_path, text_encoder=None, tokenizer=None, torch_dtype=torch.float16,
                                                 transformer=transformer).to(device=transformer.device)
     dataset = FilesDataset(Path(output_folder).joinpath('validation_embeddings'), extensions=['.emb'])
@@ -249,7 +242,7 @@ def validation_and_save(repository_path : str, transformer : PixArtTransformer2D
                            output_type='latent').images
             image = pipe.vae.decode(latents.to(torch.float16) / pipe.vae.config.scaling_factor, return_dict=False)[0]
             image = pipe.image_processor.postprocess(image, output_type='pt')[0]
-            logger.add_image(validation_prompts[index], image, global_step)
+            logger.add_image(batch, image, global_step)
         del image
         del latents
         flush()
@@ -268,7 +261,7 @@ def validation_and_save(repository_path : str, transformer : PixArtTransformer2D
     transformer.save_pretrained(Path(logging_path).joinpath(f'{global_step}'))
     
 def train(output_folder : str, num_epochs : int, batch_size : int, repository_path : str, learning_rate : float, steps_per_validation : int, epochs_per_validation : int,
-          blank_transformer : bool, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str, validation_prompts : list[str], push_transformer_to_hub : bool):
+          blank_transformer : bool, hf_dataset : datasets.Dataset, embeddings_column : str, vae_features_column : str, push_transformer_to_hub : bool):
     dataset = EmbeddingsFeaturesDataset(output_folder, hf_dataset, embeddings_column, vae_features_column)
     sampler = BucketSampler(dataset.files, batch_size, hf_dataset, embeddings_column, vae_features_column)
     dataloader = DataLoader(dataset, batch_sampler=sampler)
@@ -305,17 +298,17 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
     device = accelerator.unwrap_model(transformer).device
     for epoch in tqdm.tqdm(range(num_epochs)):
         if epoch % epochs_per_validation == 0 and accelerator.is_main_process:
-            validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts)
+            validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir)
         
         for embeddings, embeddings_mask, features in tqdm.tqdm(dataloader, desc='Batch:'):
             if global_step % steps_per_validation == 0 and accelerator.is_main_process:
-                validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts)
+                validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir)
 
             with torch.no_grad():
                 # strip the second dimension
                 embeddings = torch.squeeze(embeddings, dim=1).to(dtype=dtype)
                 embeddings_mask = torch.squeeze(embeddings_mask, dim=1).to(dtype=dtype)
-                batch_features = torch.squeeze(batch_features, dim=1).to(dtype=dtype)
+                batch_features = torch.squeeze(features, dim=1).to(dtype=dtype)
                 batch_size = batch_features.shape[0]
     
                 timestep = torch.randint(0, scheduler.config.num_train_timesteps, (1,), device=device)
@@ -344,7 +337,7 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
     
     # final save
     if accelerator.is_main_process:
-        validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, validation_prompts, push_transformer_to_hub)
+        validation_and_save(repository_path, accelerator.unwrap_model(transformer), output_folder, logger, global_step, logs_dir, push_transformer_to_hub)
             
 
 if __name__ == '__main__':
@@ -377,8 +370,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     repository_path = args.repository_path
-    validation_prompts = args.validation_prompts
-    images_folder = args.images_folder
     dataset_path = args.dataset_path
     output_folder = args.output_folder
     push_transformer_to_hub = args.push_transformer_to_hub
@@ -401,4 +392,4 @@ if __name__ == '__main__':
 
     train(output_folder, num_epochs, batch_size, repository_path, learning_rate, steps_per_validation, epochs_per_validation, blank_transformer, dataset,
           ['t5_prompt_embeds', 't5_prompt_attention_mask', 't5_negative_embeds', 't5_negative_prompt_attention_mask'],
-          f'vae_{checkpoint_resolution}px', validation_prompts, push_transformer_to_hub)
+          f'vae_{checkpoint_resolution}px', push_transformer_to_hub)
