@@ -242,7 +242,7 @@ def validation_and_save(repository_path : str, transformer : PixArtTransformer2D
                            output_type='latent').images
             image = pipe.vae.decode(latents.to(torch.float16) / pipe.vae.config.scaling_factor, return_dict=False)[0]
             image = pipe.image_processor.postprocess(image, output_type='pt')[0]
-            logger.add_image(batch, image, global_step)
+            logger.add_image(f'{index}', image, global_step)
         del image
         del latents
         flush()
