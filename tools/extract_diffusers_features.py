@@ -227,11 +227,16 @@ def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_colu
         latents = []
         ratios = []
         for elem in tqdm.tqdm(iterator):
-            if dataset_url_column != None:
-                response = requests.get(elem)
-                image = Image.open(BytesIO(response.content))
-            else:
-                image = elem
+            try:
+                if dataset_url_column != None:
+                    response = requests.get(elem)
+                    image = Image.open(BytesIO(response.content))
+                else:
+                    image = elem
+            except:
+                latents.append(None)
+                ratios.append(None)
+                continue
             # force rgb format
             image = image.convert('RGB')
 
@@ -266,6 +271,9 @@ def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_colu
         batch['ratio'] = ratios
         return batch
     dataset = dataset.map(add_vae_column, batched=True, with_rank=True, num_proc=num_vae_processes_per_gpu * torch.cuda.device_count())
+
+    # filter out the none entries
+    dataset = dataset.filter(lambda example: example["ratio"] != None)
     return dataset
 
 if __name__ == '__main__':
