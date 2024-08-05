@@ -33,6 +33,7 @@ import argparse
 import requests
 from datetime import timedelta
 from torch.multiprocessing import set_start_method
+from datasets import set_caching_enabled
 
 def find_closest_resolution(ratio, resolution):
     if resolution == 512:
@@ -269,6 +270,12 @@ def extract_vae_features_from_dataset(repository_path, dataset, dataset_url_colu
 
         batch[f'vae_{checkpoint_resolution}px'] = latents
         batch['ratio'] = ratios
+
+        del image_processor
+        del vae
+        del pipe
+        flush()
+        
         return batch
     dataset = dataset.map(add_vae_column, batched=True, with_rank=True, num_proc=num_vae_processes_per_gpu * torch.cuda.device_count())
 
@@ -312,6 +319,7 @@ if __name__ == '__main__':
     dataset_output_repo = args.dataset_output_repo
     num_vae_processes = args.num_vae_processes
     t5_num_processes = args.num_t5_processes
+    set_caching_enabled(False)
 
     captions_folder = args.captions_folder
     if captions_folder == None:
