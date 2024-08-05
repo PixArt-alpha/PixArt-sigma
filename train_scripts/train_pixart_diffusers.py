@@ -334,6 +334,17 @@ def train(output_folder : str, num_epochs : int, batch_size : int, repository_pa
             # some logging statistics
             logger.add_scalar('loss', loss.detach().item(), global_step)
             global_step = global_step + 1
+
+            del embeddings
+            del embeddings_mask
+            del batch_features
+            del timestep
+            del timesteps
+            del noise
+            del noisy_latents
+            del latent_model_input
+            del noise_pred
+            flush()
     
     # final save
     if accelerator.is_main_process:
